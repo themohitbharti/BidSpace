@@ -12,16 +12,19 @@ app.use((req: any, res: any, next: any) => {
     next();
 });
 
-app.get("/", (req: any, res: any) => {
+app.get("/ball", (req: any, res: any) => {
     res.send("Hello World!");
 });
 
-// Error Middleware
-app.use((err: any, req: any, res: any, next: any) => {
-    console.error(err.stack);
-    res.status(500).send("Something broke!");
+app.get("/lol", (req: any, res: any) => {
+    res.send("H!");
 });
 
-app.listen(port, () =>
-  console.log("\x1b[36m%s\x1b[0m", `Server started on port ${port}`)
-);
+app.get('/' , (req: any, res: any) => {
+    res.send("kya hua jo lari chuti")
+    console.log("kismat ki gaadi luti")
+})
+
+app.get('/login' , (req:any,res:any) => {
+    res.send("user logined")
+})
