@@ -1,30 +1,18 @@
-import dotenv from "dotenv";
-import express from "express";
+import dotenv from "dotenv"
+import express from "express"
 import { app } from "./app";
+import connectDB from "./db/conn";
 
 dotenv.config();
+connectDB();
 
-const port = process.env.PORT;
-
-// Log Middleware
-app.use((req: any, res: any, next: any) => {
-    console.log(`Request: ${req.method} ${req.path}`);
-    next();
-});
-
-app.get("/ball", (req: any, res: any) => {
-    res.send("Hello World!");
-});
-
-app.get("/lol", (req: any, res: any) => {
-    res.send("H!");
-});
+const port = process.env.PORT
 
 app.get('/' , (req: any, res: any) => {
-    res.send("kya hua jo lari chuti")
-    console.log("kismat ki gaadi luti")
+    res.send("nazro me ho tum meri")
+    console.log("khona chahu mai raat bhar")
 })
 
-app.get('/login' , (req:any,res:any) => {
-    res.send("user logined")
+app.listen(port,()=>{
+    console.log("Server is up and Running")
 })
