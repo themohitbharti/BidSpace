@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -44,7 +44,7 @@ const getConfig = (): Config => {
     !ACCESS_TOKEN_EXPIRY ||
     !REFRESH_TOKEN_EXPIRY
   ) {
-    throw new Error('Missing required environment variables');
+    throw new Error("Missing required environment variables");
   }
 
   return {
