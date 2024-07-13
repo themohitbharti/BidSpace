@@ -14,14 +14,13 @@ const generateOTP = (): string => {
 };
 
 const registerUser = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const { username, email, fullName, password } = req.body as {
-    username: string;
+  const {  email, fullName, password } = req.body as {
     email: string;
     fullName: string;
     password: string;
   };
 
-  if (!username || !email || !fullName || !password) {
+  if (!email || !fullName || !password) {
     res.status(400).json({
       success: false,
       message: "Please provide all fields",
@@ -39,7 +38,7 @@ const registerUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   let existedUser: UserDocument | null;
   try {
     existedUser = await User.findOne({
-      $or: [{ username }, { email }],
+      email
     });
   } catch (error) {
     console.error("Error finding user:", error);

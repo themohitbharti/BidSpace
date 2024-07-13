@@ -5,15 +5,14 @@ export const validateInput = (
   res: Response,
   next: NextFunction
 ) => {
-  const { username, otp, email, fullName, password } = req.body as {
-    username: string;
+  const { otp, email, fullName, password } = req.body as {
     otp: string;
     email: string;
     fullName: string;
     password: string;
   };
 
-  const inputs = [username, otp, email, fullName, password];
+  const inputs = [ otp, email, fullName, password];
   for (const input of inputs) {
     if (!isValidInput(input)) {
       return res.status(400).json({

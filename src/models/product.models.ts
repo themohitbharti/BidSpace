@@ -1,11 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-interface IProduct extends Document {
-  name: string;
+export interface IProduct extends Document {
+  title: string;
   basePrice: number;
   description?: string;
   category: string;
-  coverImage?: string;
+  coverImages?: string[];
   listedBy: mongoose.Types.ObjectId;
   status: 'sold' | 'unsold';
   finalSoldPrice?: number;
@@ -14,7 +14,7 @@ interface IProduct extends Document {
 }
 
 const productSchema = new Schema<IProduct>({
-  name: {
+  title: {
     type: String,
     required: true,
     trim: true,
@@ -34,8 +34,8 @@ const productSchema = new Schema<IProduct>({
     required: true,
     index: true 
   },
-  coverImage: {
-    type: String,
+  coverImages: {
+    type: [String],
     trim: true
   },
   listedBy: {
@@ -67,6 +67,5 @@ productSchema.pre<IProduct>('save', function(next) {
   next();
 });
 
-const Product = mongoose.model<IProduct>('Product', productSchema);
+export const Product = mongoose.model<IProduct>('Product', productSchema);
 
-export default Product;

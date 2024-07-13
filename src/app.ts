@@ -8,6 +8,7 @@ import session from "express-session";
 import rateLimit from "express-rate-limit";
 import userRoutes from "./routers/user.routes";
 import authRoutes from "./routers/auth.routes";
+import productRoutes from "./routers/product.routes";
 import "./config/passport.setup";
 
 const app = express();
@@ -55,7 +56,9 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use("/api/v1/user", userRoutes);
 app.use("/auth", authRoutes);
+app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/product", productRoutes);
+
 
 export { app };
