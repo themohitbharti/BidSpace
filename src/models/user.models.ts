@@ -14,9 +14,8 @@ export interface UserDocument extends mongoose.Document {
   resetPasswordExpires?: Date;
   totalMoney: number;
   reservedMoney: number;
-  bids: string[]; // array of bid IDs
-  products: string[]; // array of product IDs listed for sale
-  purchased: string[];
+  productsListed: string[]; 
+  productsPurchased: string[];
 
   // Methods specific to instances of UserDocument
   isPasswordCorrect(password: string): Promise<boolean>;
@@ -70,15 +69,11 @@ const userSchema = new mongoose.Schema<UserDocument>(
       type: Number,
       default: 0,
     },
-    bids: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Bid',
-    }],
-    products: [{
+    productsListed: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',
     }],
-    purchased: [{
+    productsPurchased: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',
     }],

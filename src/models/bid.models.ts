@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, ObjectId } from "mongoose";
 interface Bid {
   auctionId: ObjectId; 
   userId: ObjectId;
-  amount: number;
+  bidAmount: number;
   createdAt?: Date;
 }
 
@@ -20,9 +20,10 @@ const bidSchema: Schema<BidDocument> = new Schema({
     ref: "User",
     required: true,
   },
-  amount: {
+  bidAmount: {
     type: Number,
     required: true,
+    min:0,
   },
   createdAt: {
     type: Date,
