@@ -3,6 +3,7 @@ import { Product, IProduct } from "../models/product.models";
 import { asyncHandler } from "../utils/asyncHandler";
 import { User, UserDocument } from "../models/user.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
+import { uploadOnCloudinary } from "../utils/uploadFiles";
 
 const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
   const { title, description, basePrice, category } = req.body;
@@ -28,14 +29,22 @@ if (!coverImages) {
     return;
 }
 
-  const images = coverImages.map((file: Express.Multer.File) => file.path);
+//   const images = coverImages.map((file: Express.Multer.File) => file.path);
+
+  const cloudinaryUploadPromises = coverImages.map(async (file: Express.Multer.File) => {
+    const cloudinaryResponse = await uploadOnCloudinary(file.path);
+    return cloudinaryResponse?.secure_url; // Get secure URL from Cloudinary response
+  });
+
+  // Wait for all uploads to complete
+  const cloudinaryUrls = await Promise.all(cloudinaryUploadPromises);
 
   const newProduct = new Product({
     title,
     description,
     basePrice,
     category,
-    coverImages: images,
+    coverImages: cloudinaryUrls,
     listedBy: user._id,
   });
 
