@@ -4,7 +4,6 @@ import bcrypt from "bcrypt";
 import { config } from "../config/envConfig";
 
 export interface UserDocument extends mongoose.Document {
-  username: string;
   email: string;
   fullName: string;
   googleId?: string;
@@ -13,6 +12,11 @@ export interface UserDocument extends mongoose.Document {
   refreshToken?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  totalMoney: number;
+  reservedMoney: number;
+  bids: string[]; // array of bid IDs
+  products: string[]; // array of product IDs listed for sale
+  purchased: string[];
 
   // Methods specific to instances of UserDocument
   isPasswordCorrect(password: string): Promise<boolean>;
@@ -22,15 +26,6 @@ export interface UserDocument extends mongoose.Document {
 
 const userSchema = new mongoose.Schema<UserDocument>(
   {
-    username: {
-      type: String,
-      required: function (): boolean {
-        return !this.googleId; // Required only if not signed up via Google
-      },
-      lowercase: true,
-      trim: true,
-      index: true,
-    },
     email: {
       type: String,
       required: true,
@@ -67,6 +62,26 @@ const userSchema = new mongoose.Schema<UserDocument>(
     resetPasswordExpires: {
       type: Date,
     },
+    totalMoney: {
+      type: Number,
+      default: 0,
+    },
+    reservedMoney: {
+      type: Number,
+      default: 0,
+    },
+    bids: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Bid',
+    }],
+    products: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    }],
+    purchased: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    }],
   },
   { timestamps: true }
 );
