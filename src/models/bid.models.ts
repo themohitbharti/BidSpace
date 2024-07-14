@@ -31,6 +31,6 @@ const bidSchema: Schema<BidDocument> = new Schema({
   },
 });
 
-const BidModel = mongoose.model<BidDocument>("Bid", bidSchema);
+export const BidModel = mongoose.model<BidDocument>("Bid", bidSchema);
 
-export default BidModel;
+

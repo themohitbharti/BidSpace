@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { check, body, validationResult } from "express-validator";
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler";
-import Auction from "../models/auction.models";
-import BidModel from "../models/bid.models";
+import {Auction , IAuction} from "../models/auction.models";
+import {BidModel } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { ObjectId } from 'mongoose';
 

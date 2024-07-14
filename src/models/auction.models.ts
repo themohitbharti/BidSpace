@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-interface IAuction extends Document {
+export interface IAuction extends Document {
   productId: mongoose.Types.ObjectId;
   startPrice: number;
   currentPrice: number;
@@ -59,6 +59,5 @@ auctionSchema.pre<IAuction>('save', function(next) {
   next();
 });
 
-const Auction = mongoose.model<IAuction>('Auction', auctionSchema);
+export const Auction = mongoose.model<IAuction>('Auction', auctionSchema);
 
-export default Auction;

@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { Product, IProduct } from "../models/product.models";
 import { asyncHandler } from "../utils/asyncHandler";
 import { User, UserDocument } from "../models/user.models";
-import Auction from "../models/auction.models";
+import {Auction , IAuction} from "../models/auction.models";
+import {BidModel , BidDocument} from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { uploadOnCloudinary } from "../utils/uploadFiles";
 
@@ -87,4 +89,34 @@ if (!coverImages) {
   
 });
 
-export { listProducts };
+
+const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const userId = req.user._id;
+  console.log("hi")
+
+ 
+    const userBids: BidDocument[] = await BidModel.find({ userId });
+
+    const auctionIds = userBids.map((bid) => bid.auctionId);
+
+    const activeAuctions = await Auction.find({
+      _id: { $in: auctionIds },
+      endTime: { $gt: new Date() },
+    });
+   
+    const waitingPurchases = activeAuctions.map((auction) => ({
+      productId: auction.productId,
+      currentPrice: auction.currentPrice,
+      endTime: auction.endTime,
+      bidAmount: userBids.find((bid) => bid.auctionId === auction._id)?.bidAmount,
+      auctionId: auction._id,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Successfully fetched waiting purchases',
+      data: waitingPurchases,
+    });
+});
+
+export { listProducts, showWaitingPurchases };
