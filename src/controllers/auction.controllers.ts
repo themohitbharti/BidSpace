@@ -60,7 +60,6 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId) , bidAmount });
   await auction.save();
 
-  user.totalMoney -= bidAmount;
   user.reservedMoney += bidAmount;
   await user.save();
 
