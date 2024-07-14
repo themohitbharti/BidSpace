@@ -45,7 +45,13 @@ if (!coverImages) {
     listedBy: user._id,
   });
 
-  const savedProduct = await newProduct.save();
+  const savedProduct: IProduct = await newProduct.save();
+
+  if (savedProduct && savedProduct._id) {
+    const productId: string = savedProduct._id.toString();
+    user.productsListed.push(productId);
+    await user.save();
+  }
 
   const currentTime = new Date();
 
