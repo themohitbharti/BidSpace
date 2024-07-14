@@ -8,6 +8,7 @@ import session from "express-session";
 import rateLimit from "express-rate-limit";
 import userRoutes from "./routers/user.routes";
 import authRoutes from "./routers/auth.routes";
+import auctionRoutes from "./routers/auction.routes";
 import productRoutes from "./routers/product.routes";
 import "./config/passport.setup";
 
@@ -59,6 +60,7 @@ app.use(passport.session());
 app.use("/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/product", productRoutes);
+app.use("/api/v1/auction", auctionRoutes);
 
 
 export { app };
