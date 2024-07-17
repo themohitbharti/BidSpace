@@ -10,6 +10,7 @@ import userRoutes from "./routers/user.routes";
 import authRoutes from "./routers/auth.routes";
 import auctionRoutes from "./routers/auction.routes";
 import productRoutes from "./routers/product.routes";
+import paymentRoutes from "./routers/payment.routes";
 import "./config/passport.setup";
 
 const app = express();
@@ -61,6 +62,7 @@ app.use("/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/product", productRoutes);
 app.use("/api/v1/auction", auctionRoutes);
+app.use("/api/v1/payment" , paymentRoutes);
 
 
 export { app };

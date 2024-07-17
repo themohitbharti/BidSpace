@@ -47,7 +47,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
 
-  const availableMoney = user.totalMoney - user.reservedMoney;
+  const availableMoney = user.totalCoins - user.reservedCoins;
 
   if (bidAmount > availableMoney) {
     return res.status(400).json({
@@ -60,7 +60,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId) , bidAmount });
   await auction.save();
 
-  user.reservedMoney += bidAmount;
+  user.reservedCoins += bidAmount;
   await user.save();
 
   const newBid = new BidModel({
