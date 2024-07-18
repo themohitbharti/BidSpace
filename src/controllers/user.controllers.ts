@@ -96,10 +96,9 @@ const registerUser = asyncHandler(async (req: CustomRequest, res: Response) => {
 });
 
 const verifyOTP = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const { email, otp, username, fullName, password } = req.body as {
+  const { email, otp, fullName, password } = req.body as {
     email: string;
     otp: string;
-    username: string;
     fullName: string;
     password: string;
   };
@@ -121,7 +120,6 @@ const verifyOTP = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
   const newUser = await User.create({
-    username,
     email,
     fullName,
     password,
@@ -166,19 +164,18 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   // const schema= yup.object().shape({
   //   email:yup.string().required(),
   //   password:yup.string().required(),
-  //   username:yup.string().required()
   // })
 
   // const result = await schema.validate(req.body)
 
-  // const {email,password,username}=result
+  // const {email,password}=result
 
-  const { email, username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!email && !username) {
+  if (!email ) {
     return res.status(402).json({
       success: false,
-      message: "enter email or username",
+      message: "enter email",
     });
   }
 
@@ -189,11 +186,8 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-  const query: any = {};
-  if (email) query.email = email;
-  if (typeof username === "string") query.username = username;
 
-  const existedUser = await User.findOne(query);
+  const existedUser = await User.findOne({email});
 
   if (!existedUser) {
     return res.status(400).json({
@@ -218,7 +212,7 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   await existedUser.save({ validateBeforeSave: false });
 
   const loggedInUser = (await User.findOne({
-    $or: [{ username }, { email }],
+    email
   }).select("-password -refreshToken")) as UserDocument | null;
 
   const options = {
