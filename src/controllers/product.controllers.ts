@@ -148,4 +148,35 @@ const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Respon
     });
 });
 
-export { listProducts, showWaitingPurchases };
+const showByCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const category = req.params.category;
+
+  const cachedProducts = await redisClient.get(`products:${category}`);
+
+  if (cachedProducts) {
+    return res.status(200).json({
+      success: true,
+      message: `Products in category '${category}' fetched from cache`,
+      data: JSON.parse(cachedProducts),
+    });
+  }
+
+  const products: IProduct[] = await Product.find({ category });
+
+  if (products.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: `No products found in category '${category}'`,
+    });
+  }
+
+  await redisClient.setex(`products:${category}`, 120, JSON.stringify(products));
+
+  return res.status(200).json({
+    success: true,
+    message: `Products in category '${category}' fetched from database`,
+    data: products,
+  });
+});
+
+export { listProducts, showWaitingPurchases ,showByCategory };
