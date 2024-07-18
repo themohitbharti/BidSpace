@@ -5,7 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import {Auction , IAuction} from "../models/auction.models";
 import {BidModel } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
-import { ObjectId } from 'mongoose';
+import { redisClient } from "../config/redisClient";
 
 const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
@@ -70,6 +70,34 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   });
 
   const savedBid = await newBid.save();
+
+  const cacheKey = `auction:${auctionId}`;
+  const cacheValue = JSON.stringify({
+    currentPrice: auction.currentPrice,
+    bidders: auction.bidders,
+    updatedAt: new Date(),
+  });
+
+  try {
+    await redisClient.set(cacheKey, cacheValue, 'EX', 60);
+    console.log("Cache set successfully");
+  } catch (error) {
+    console.error("Error setting cache:", error);
+  }
+
+  const streamKey = `auctionStream:${auctionId}`;
+  const eventData = JSON.stringify({
+    userId,
+    bidAmount,
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    await redisClient.xadd(streamKey, 'MAXLEN', '~', 15, '*', 'bid', eventData);
+    console.log("Bid added to Redis stream successfully");
+  } catch (error) {
+    console.error("Error adding bid to Redis stream:", error);
+  }
 
   return res.status(201).json({
     success: true,
