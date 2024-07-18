@@ -78,6 +78,9 @@ if (!coverImages) {
 
   const savedAuction = await newAuction.save();
 
+  savedProduct.auctionId = savedAuction._id as mongoose.Types.ObjectId;
+  await savedProduct.save();
+
   const cacheKey = `product:${savedProduct._id}`;
   const cacheValue = JSON.stringify({
     title: savedProduct.title,
@@ -86,6 +89,7 @@ if (!coverImages) {
     category: savedProduct.category,
     coverImages: savedProduct.coverImages,
     listedBy: savedProduct.listedBy,
+    auctionId: savedProduct.auctionId,
     createdAt: savedProduct.createdAt,
     updatedAt: savedProduct.updatedAt,
   });

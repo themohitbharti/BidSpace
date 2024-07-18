@@ -9,6 +9,7 @@ export interface IProduct extends Document {
   listedBy: mongoose.Types.ObjectId;
   status: 'sold' | 'unsold';
   finalSoldPrice?: number;
+  auctionId:mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +52,10 @@ const productSchema = new Schema<IProduct>({
   finalSoldPrice: {
     type: Number,
     min: 0
+  },
+  auctionId: {
+    type:Schema.Types.ObjectId,
+    ref: 'Auction'
   },
   createdAt: {
     type: Date,
