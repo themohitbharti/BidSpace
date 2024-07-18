@@ -1,8 +1,8 @@
 import mongoose, { Schema, Document, ObjectId } from "mongoose";
 
 interface Bid {
-  auctionId: ObjectId; 
-  userId: ObjectId;
+  auctionId: mongoose.Types.ObjectId; 
+  userId: mongoose.Types.ObjectId;
   bidAmount: number;
   createdAt?: Date;
 }

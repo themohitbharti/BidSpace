@@ -6,6 +6,7 @@ import {Auction , IAuction} from "../models/auction.models";
 import {BidModel } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { redisClient } from "../config/redisClient";
+import { Product } from "../models/product.models";
 
 const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
@@ -33,6 +34,9 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const currentTime = new Date();
   if (auction.endTime <= currentTime) {
+
+    await cleanupAuctionBids(new mongoose.Types.ObjectId(auctionId));
+
     return res.status(400).json({
       success: false,
       message: "Auction has ended",
@@ -108,5 +112,23 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     },
   });
 });
+
+async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
+  const bids = await BidModel.find({ auctionId });
+
+  if (bids.length > 0) {
+    const lastBid = bids[bids.length - 1];
+    await BidModel.deleteMany({ auctionId });
+
+    const product = await Product.findOne({ auctionId });
+    if (product) {
+      product.finalBid = {
+        userId: lastBid.userId,
+        bidAmount: lastBid.bidAmount,
+      };
+      await product.save();
+    }
+  }
+}
 
 export { bidInAuction };
