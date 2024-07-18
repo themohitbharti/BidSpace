@@ -78,6 +78,20 @@ if (!coverImages) {
 
   const savedAuction = await newAuction.save();
 
+  const cacheKey = `product:${savedProduct._id}`;
+  const cacheValue = JSON.stringify({
+    title: savedProduct.title,
+    description: savedProduct.description,
+    basePrice: savedProduct.basePrice,
+    category: savedProduct.category,
+    coverImages: savedProduct.coverImages,
+    listedBy: savedProduct.listedBy,
+    createdAt: savedProduct.createdAt,
+    updatedAt: savedProduct.updatedAt,
+  });
+
+  await redisClient.setex(cacheKey, 300, cacheValue);
+
   return res.status(201).json({
     success: true,
     message: "Product listed and auction started successfully",
