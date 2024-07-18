@@ -179,4 +179,59 @@ const showByCategory = asyncHandler(async (req: CustomRequest, res: Response) =>
   });
 });
 
-export { listProducts, showWaitingPurchases ,showByCategory };
+const showProductDetails = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const productId = req.params.id;
+
+  const cachedProduct = await redisClient.get(`product:${productId}`);
+  const cachedAuction = await redisClient.get(`auction:${productId}`);
+
+  let product: IProduct | null = null;
+  let auction: IAuction | null = null;
+
+  if (cachedProduct && cachedAuction) {
+    product = JSON.parse(cachedProduct);
+    auction = JSON.parse(cachedAuction);
+  } else {
+    product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    auction = await Auction.findOne({ productId: product._id });
+
+    if (!auction) {
+      return res.status(404).json({
+        success: false,
+        message: "Auction not found for this product",
+      });
+    }
+
+    await redisClient.setex(`product:${productId}`, 120, JSON.stringify(product)); 
+    await redisClient.setex(`auction:${productId}`, 120, JSON.stringify(auction)); 
+  }
+
+  let parsedBids: Array<{ userId: string; bidAmount: number; timestamp: string }> = [];
+
+  if(auction){
+    const streamKey = `auctionStream:${auction._id}`;
+  const liveBids = await redisClient.xrange(streamKey, '-', '+', 'COUNT', 15);
+  const parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
+
+  if (parsedBids.length > 0) {
+    const lastBid = parsedBids[parsedBids.length - 1];
+    auction.currentPrice = lastBid.bidAmount;
+  }
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Product details fetched successfully",
+    data: { product, auction, liveBids: parsedBids },
+  });
+});
+
+export { listProducts, showWaitingPurchases ,showByCategory ,showProductDetails};

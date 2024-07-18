@@ -1,5 +1,5 @@
 import express from 'express';
-import { listProducts , showWaitingPurchases,showByCategory} from '../controllers/product.controllers'; 
+import { listProducts , showWaitingPurchases,showByCategory,showProductDetails} from '../controllers/product.controllers'; 
 import { upload } from '../middlewares/multer.middlewares';
 import { verifyToken } from '../middlewares/verifyToken.middleware';
 
@@ -18,6 +18,8 @@ router.post('/upload',
 router.get('/waiting' ,verifyToken, showWaitingPurchases) 
 
 router.get('/list/:category' ,verifyToken, showByCategory) 
+
+router.get('/details/:id' ,verifyToken, showProductDetails) 
 
 
 export default router;

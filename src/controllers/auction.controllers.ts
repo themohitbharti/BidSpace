@@ -71,7 +71,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const savedBid = await newBid.save();
 
-  const cacheKey = `auction:${auctionId}`;
+  const cacheKey = `auction:${auction.productId}`;
   const cacheValue = JSON.stringify({
     currentPrice: auction.currentPrice,
     bidders: auction.bidders,
