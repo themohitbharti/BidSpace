@@ -7,6 +7,7 @@ import {Auction , IAuction} from "../models/auction.models";
 import {BidModel , BidDocument} from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { uploadOnCloudinary } from "../utils/uploadFiles";
+import { redisClient } from "../config/redisClient";
 
 const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
   const { title, description, basePrice, category, endTime } = req.body;
@@ -91,10 +92,17 @@ if (!coverImages) {
 
 
 const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const userId = req.user._id;
-  console.log("hi")
+    const userId = req.user._id;
 
- 
+    const cachedData = await redisClient.get(`waitingPurchases:${userId}`);
+  if (cachedData) {
+    return res.status(200).json({
+      success: true,
+      message: 'Successfully fetched waiting purchases from cache',
+      data: JSON.parse(cachedData),
+    });
+  }
+
     const userBids: BidDocument[] = await BidModel.find({ userId });
 
     const auctionIds = userBids.map((bid) => bid.auctionId);
@@ -111,6 +119,9 @@ const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Respon
       bidAmount: userBids.find((bid) => bid.auctionId === auction._id)?.bidAmount,
       auctionId: auction._id,
     }));
+
+    await redisClient.setex(`waitingPurchases:${userId}`, 120, JSON.stringify(waitingPurchases)); // Cache for 2 minutes
+
 
     return res.status(200).json({
       success: true,
