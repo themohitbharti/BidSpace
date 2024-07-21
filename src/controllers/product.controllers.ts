@@ -234,4 +234,42 @@ const showProductDetails = asyncHandler(async (req: CustomRequest, res: Response
   });
 });
 
-export { listProducts, showWaitingPurchases ,showByCategory ,showProductDetails};
+
+const showPurchasedProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const userId = req.user._id;
+
+  const cacheKey = `purchasedProducts:${userId}`;
+  const cachedData = await redisClient.get(cacheKey);
+
+  if (cachedData) {
+    return res.status(200).json({
+      success: true,
+      message: 'Successfully fetched purchased products from cache',
+      data: JSON.parse(cachedData),
+    });
+  }
+
+  const user: UserDocument | null = await User.findById(userId).populate('productsPurchased');
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found',
+    });
+  }
+
+  const productIds = user.productsPurchased;
+
+  const purchasedProducts: IProduct[] = await Product.find({ _id: { $in: productIds } });
+
+  await redisClient.setex(cacheKey, 60, JSON.stringify(purchasedProducts));
+
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully fetched purchased products',
+    data: purchasedProducts,
+  });
+});
+
+
+export { listProducts, showWaitingPurchases ,showByCategory ,showProductDetails, showPurchasedProducts};
