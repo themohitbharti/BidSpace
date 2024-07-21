@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { Auction } from '../models/auction.models'; 
 import { BidModel } from '../models/bid.models';
 import { Product } from '../models/product.models'; 
+import { User } from '../models/user.models';
 import { redisClient } from '../config/redisClient';
 
 cron.schedule('0 * * * *', async () => { 
@@ -25,6 +26,11 @@ cron.schedule('0 * * * *', async () => {
             userId: highestBid.userId,
             bidAmount: highestBid.bidAmount
           };
+
+          await User.findByIdAndUpdate(highestBid.userId, {
+            $push: { productsPurchased: product._id }
+          });
+
         } else {
           product.status = 'unsold';
         }

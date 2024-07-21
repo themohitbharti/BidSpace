@@ -7,6 +7,7 @@ import {BidModel } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { redisClient } from "../config/redisClient";
 import { Product } from "../models/product.models";
+import { User } from "../models/user.models";
 
 const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
@@ -128,6 +129,10 @@ async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
       product.finalSoldPrice = lastBid.bidAmount; 
       product.status = 'sold';
       await product.save();
+
+      await User.findByIdAndUpdate(lastBid.userId, {
+        $push: { productsPurchased: product._id }
+      });
     }
   }
   else{
