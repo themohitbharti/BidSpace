@@ -137,9 +137,23 @@ async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
       await product.save();
 
       await User.findByIdAndUpdate(lastBid.userId, {
-        $push: { productsPurchased: product._id }
+        $push: { productsPurchased: product._id },
+        $inc: { coins: -lastBid.bidAmount }
       });
     }
+
+    const auction = await Auction.findOne({_id: auctionId})
+    if(auction){
+      for (const bidder of auction.bidders) {
+      const user = await User.findById(bidder.userId);
+      if (user) {
+        user.coins += bidder.bidAmount;
+        user.reservedCoins -= bidder.bidAmount;
+        await user.save();
+      }
+    }
+    }
+    
   }
   else{
     const product = await Product.findOne({ auctionId });
