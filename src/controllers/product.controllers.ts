@@ -149,19 +149,27 @@ const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Respon
 });
 
 const showByCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const category = req.params.category;
+  const {category , status} = req.params;
 
-  const cachedProducts = await redisClient.get(`products:${category}`);
+  const cacheKey =  `products:${category}:${status}`
+  const cachedProducts = await redisClient.get(cacheKey);
 
   if (cachedProducts) {
     return res.status(200).json({
       success: true,
-      message: `Products in category '${category}' fetched from cache`,
+      message: `Products in category '${category}' with status '${status}' fetched from cache`,
       data: JSON.parse(cachedProducts),
     });
   }
 
-  const products: IProduct[] = await Product.find({ category });
+  const query: any = { category };
+  if (status === 'live') {
+    query.status = { $in: ['live'] }; 
+  } else if (status === 'ended') {
+    query.status = { $in: ['sold', 'unsold'] }; 
+  }
+
+  const products: IProduct[] = await Product.find(query);
 
   if (products.length === 0) {
     return res.status(404).json({

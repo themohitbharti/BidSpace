@@ -17,7 +17,7 @@ router.post('/upload',
 
 router.get('/waiting' ,verifyToken, showWaitingPurchases) 
 
-router.get('/list/:category' ,verifyToken, showByCategory) 
+router.get('/list/:category/:status' ,verifyToken, showByCategory) 
 
 router.get('/details/:id' ,verifyToken, showProductDetails)
 
