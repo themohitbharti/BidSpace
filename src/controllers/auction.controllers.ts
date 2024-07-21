@@ -163,6 +163,14 @@ async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
       await product.save();
     }
   }
+
+  const streamKey = `auctionStream:${auctionId}`;
+  try {
+    await redisClient.del(streamKey);
+    console.log(`Redis stream ${streamKey} deleted successfully`);
+  } catch (error) {
+    console.error(`Error deleting Redis stream ${streamKey}:`, error);
+  }
 }
 
 export { bidInAuction };
