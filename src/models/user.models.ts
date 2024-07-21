@@ -12,7 +12,7 @@ export interface UserDocument extends mongoose.Document {
   refreshToken?: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
-  totalCoins: number;
+  coins: number;
   reservedCoins: number;
   productsListed: string[]; 
   productsPurchased: string[];
@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
     resetPasswordExpires: {
       type: Date,
     },
-    totalCoins: {
+    coins: {
       type: Number,
       default: 0,
     },

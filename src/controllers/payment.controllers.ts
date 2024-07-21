@@ -61,7 +61,7 @@ const verifyPayment = asyncHandler(async (req: CustomRequest, res: Response) => 
         });
       }
   
-      user.totalCoins += amount;
+      user.coins += amount;
   
       await user.save();
   
@@ -90,7 +90,7 @@ const verifyPayment = asyncHandler(async (req: CustomRequest, res: Response) => 
         });
       }
   
-      const coins = user.totalCoins;
+      const coins = user.coins;
       const reservedCoins = user.reservedCoins;
       const overallCoins = coins + reservedCoins;
   

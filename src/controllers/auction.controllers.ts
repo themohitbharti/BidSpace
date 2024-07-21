@@ -52,7 +52,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
 
-  const availableMoney = user.totalCoins - user.reservedCoins;
+  const availableMoney = user.coins - user.reservedCoins;
 
   if (bidAmount > availableMoney) {
     return res.status(400).json({
