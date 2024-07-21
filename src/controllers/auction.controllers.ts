@@ -15,7 +15,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const { auctionId, bidAmount } = req.body as { auctionId: string; bidAmount: number; };;
   const user = req.user
-  const userId = req.user._id as string;
+  const userId = req.user._id as mongoose.Types.ObjectId;
 
   if (!auctionId || !bidAmount) {
     return res.status(400).json({
