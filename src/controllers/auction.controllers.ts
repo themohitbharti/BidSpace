@@ -44,7 +44,9 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-  if (bidAmount <= auction.currentPrice) {
+  if (bidAmount <= auction.startPrice && auction.currentPrice === auction.startPrice) {
+    auction.currentPrice = bidAmount;
+  } else if (bidAmount <= auction.currentPrice) {
     return res.status(400).json({
       success: false,
       message: "Bid amount must be higher than the current price",
@@ -65,7 +67,6 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-  auction.currentPrice = bidAmount;
   auction.bidders = auction.bidders.filter(bidder => bidder.userId.toString() !== userId.toString());
   auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId), bidAmount });
   await auction.save();
