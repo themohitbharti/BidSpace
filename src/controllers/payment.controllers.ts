@@ -77,4 +77,36 @@ const verifyPayment = asyncHandler(async (req: CustomRequest, res: Response) => 
     }
   });
 
-export { createOrder, verifyPayment };
+  const checkPurse = asyncHandler(async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id;
+  
+    try {
+      const user = await User.findById(userId);
+  
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+  
+      const coins = user.totalCoins;
+      const reservedCoins = user.reservedCoins;
+      const overallCoins = coins + reservedCoins;
+  
+      res.status(200).json({
+        success: true,
+        coins,
+        reservedCoins,
+        overallCoins,
+      });
+    } catch (error) {
+      console.error('Error checking purse:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+      });
+    }
+  });
+
+export { createOrder, verifyPayment ,checkPurse};
