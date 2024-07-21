@@ -7,7 +7,7 @@ export interface IProduct extends Document {
   category: string;
   coverImages?: string[];
   listedBy: mongoose.Types.ObjectId;
-  status: "sold" | "unsold";
+  status: 'live' | 'sold' | 'unsold';
   finalSoldPrice?: number;
   auctionId?: mongoose.Types.ObjectId;
   finalBid?: {
@@ -50,8 +50,8 @@ const productSchema = new Schema<IProduct>({
   },
   status: {
     type: String,
-    enum: ["sold", "unsold"],
-    default: "unsold",
+    enum: ["live","sold", "unsold"],
+    default: "live",
   },
   finalSoldPrice: {
     type: Number,

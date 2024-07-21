@@ -12,6 +12,7 @@ import auctionRoutes from "./routers/auction.routes";
 import productRoutes from "./routers/product.routes";
 import paymentRoutes from "./routers/payment.routes";
 import "./config/passport.setup";
+import './utils/cronJobs';
 
 const app = express();
 

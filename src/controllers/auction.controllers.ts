@@ -84,7 +84,6 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   try {
     await redisClient.set(cacheKey, cacheValue, 'EX', 60);
-    console.log("Cache set successfully");
   } catch (error) {
     console.error("Error setting cache:", error);
   }
@@ -126,6 +125,15 @@ async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
         userId: lastBid.userId,
         bidAmount: lastBid.bidAmount,
       };
+      product.finalSoldPrice = lastBid.bidAmount; 
+      product.status = 'sold';
+      await product.save();
+    }
+  }
+  else{
+    const product = await Product.findOne({ auctionId });
+    if (product) {
+      product.status = 'unsold'; 
       await product.save();
     }
   }
