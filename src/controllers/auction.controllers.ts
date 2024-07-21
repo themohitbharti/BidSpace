@@ -52,9 +52,13 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
 
-  const availableMoney = user.coins - user.reservedCoins;
+  const previousBids = await BidModel.find({ auctionId, userId });
+  const highestPreviousBid = previousBids.length > 0 ? previousBids[previousBids.length - 1].bidAmount : 0;
+  const extraAmount = Math.max(0, bidAmount - highestPreviousBid);
 
-  if (bidAmount > availableMoney) {
+  const availableMoney = user.coins;
+
+  if (extraAmount > availableMoney) {
     return res.status(400).json({
       success: false,
       message: "Insufficient funds",
@@ -62,10 +66,12 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
   auction.currentPrice = bidAmount;
-  auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId) , bidAmount });
+  auction.bidders = auction.bidders.filter(bidder => bidder.userId.toString() !== userId.toString());
+  auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId), bidAmount });
   await auction.save();
 
-  user.reservedCoins += bidAmount;
+  user.reservedCoins += extraAmount;
+  user.coins -= extraAmount;
   await user.save();
 
   const newBid = new BidModel({
