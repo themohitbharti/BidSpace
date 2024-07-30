@@ -25,6 +25,7 @@ io.on("connection" , (socket) => {
 
   socket.on("joinAuctionRoom", (auctionId) => {
     joinAuctionRoom(socket, auctionId);
+    console.log(`User ${socket.id} joined auction room ${auctionId}`);
   });
 
   socket.on("message" , (message) => {
