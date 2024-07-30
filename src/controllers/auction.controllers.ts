@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { check, body, validationResult } from "express-validator";
 import mongoose from "mongoose";
 import { Socket } from 'socket.io';
+import {io} from "../index";
 import { asyncHandler } from "../utils/asyncHandler";
 import {Auction , IAuction} from "../models/auction.models";
 import {BidModel } from "../models/bid.models";
@@ -142,6 +143,15 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   } catch (error) {
     console.error("Error adding bid to Redis stream:", error);
   }
+
+  io.to(`auction:${auctionId}`).emit('newBid', {
+    userId,
+    bidAmount,
+    auctionId,
+    currentPrice: auction.currentPrice,
+    bidders: auction.bidders,
+    timestamp: new Date().toISOString(),
+  });
 
   return res.status(201).json({
     success: true,

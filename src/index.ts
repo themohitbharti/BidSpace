@@ -5,6 +5,7 @@ import { Server } from 'socket.io';
 import { app } from "./app";
 import connectDB from "./db/conn";
 import { joinAuctionRoom } from './controllers/auction.controllers';
+import path from "path";
 
 dotenv.config();
 connectDB();
@@ -37,11 +38,18 @@ io.on("connection" , (socket) => {
       console.log(`${socket.id} disconnected`)
   })
 })
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.get("/", (req: any, res: any) => {
-  res.send("nazro me ho tum meri");
-  console.log("khona chahu mai raat bhar");
+app.get("/", (req, res) => {
+  res.render('index');
 });
+
+// app.get("/", (req: any, res: any) => {
+//   res.send("nazro me ho tum meri");
+//   console.log("khona chahu mai raat bhar");
+// });
 
 server.listen(port, () => {
   console.log(`Server is up and Running on port ${port}`);

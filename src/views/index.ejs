@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Test</title>
+</head>
+<body>
+  <h1>WebSocket Test</h1>
+  <input type="text" id="auctionIdInput" placeholder="Enter auction ID"/>
+  <button id="joinAuction">Join Auction Room</button>
+  <input type="text" id="messageInput" placeholder="Type a message"/>
+  <button id="sendMessage">Send Message</button>
+  <div id="messages"></div>
+
+  <!-- Include socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Connect event
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    // Handle new participant event
+    socket.on('newParticipant', (message) => {
+      console.log('New participant:', message);
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.innerHTML += `<p>${message}</p>`;
+    });
+
+    // Handle incoming messages
+    socket.on('message', (message) => {
+      console.log('Message from server:', message);
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.innerHTML += `<p>${message}</p>`;
+    });
+
+    // Join auction room
+    document.getElementById('joinAuction').addEventListener('click', () => {
+      const auctionId = document.getElementById('auctionIdInput').value;
+      socket.emit('joinAuctionRoom', auctionId);
+    });
+
+    // Send message to server
+    document.getElementById('sendMessage').addEventListener('click', () => {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value;
+      socket.emit('message', message);
+      messageInput.value = '';
+    });
+  </script>
+</body>
+</html>
