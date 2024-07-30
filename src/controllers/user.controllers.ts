@@ -7,6 +7,7 @@ import { User, UserDocument } from "../models/user.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { OTP, OTPDocument } from "../models/otp.models";
 import { sendEmail } from "../utils/sendEmails";
+import { redisClient } from "../config/redisClient";
 
 const generateOTP = (): string => {
   const otp = crypto.randomInt(1000, 9999).toString();
@@ -462,6 +463,36 @@ const resetPassword = asyncHandler(
   }
 );
 
+const getAllNotifications = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const userId = req.user._id;
+  const key = `notifications:${userId}`;
+
+  try {
+    const notifications = await redisClient.lrange(key, 0, -1);
+
+    if (!notifications) {
+      return res.status(404).json({
+        success: false,
+        message: 'No notifications found',
+      });
+    }
+
+    const parsedNotifications = notifications.map(notification => JSON.parse(notification));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Notifications retrieved successfully',
+      data: parsedNotifications,
+    });
+  } catch (err) {
+    console.error('Error retrieving notifications:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
 export {
   registerUser,
   verifyOTP,
@@ -471,4 +502,5 @@ export {
   changePassword,
   forgotPassword,
   resetPassword,
+  getAllNotifications,
 };

@@ -12,7 +12,11 @@ const createNotification = async ( userId: ObjectId, message: string,auctionId:O
     io.to(`user:${userId}`).emit('notifications', notification);
 
     const today = moment().format('YYYY-MM-DD');
-    await redisClient.lpush(`notifications:${userId}`, JSON.stringify(notification));
+
+    const key = `notifications:${userId}`;
+
+    await redisClient.lpush(key, JSON.stringify(notification));
+    await redisClient.expire(key, 15 * 24 * 60 * 60);
 
   } catch (err) {
     console.error('Error creating notification:', err);
