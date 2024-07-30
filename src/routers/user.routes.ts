@@ -9,6 +9,7 @@ import {
   forgotPassword,
   resetPassword,
   getAllNotifications,
+  getUser,
 } from "../controllers/user.controllers";
 import { verifyToken } from "../middlewares/verifyToken.middleware";
 import { validateInput } from "../middlewares/isValidInput.middleware";
@@ -32,5 +33,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
 router.get("/notifications", verifyToken, getAllNotifications);
+
+router.get("/details", verifyToken, getUser);
 
 export default router;

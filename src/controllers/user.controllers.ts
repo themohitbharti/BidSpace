@@ -493,6 +493,40 @@ const getAllNotifications = asyncHandler(async (req: CustomRequest, res: Respons
   }
 });
 
+const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const userId = req.user._id;
+
+  if (!userId) {
+    return res.status(400).json({
+      success: false,
+      message: 'User ID not provided',
+    });
+  }
+
+  try {
+    const user = await User.findById(userId).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'User retrieved successfully',
+      data: user,
+    });
+  } catch (err) {
+    console.error('Error retrieving user:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
 export {
   registerUser,
   verifyOTP,
@@ -503,4 +537,5 @@ export {
   forgotPassword,
   resetPassword,
   getAllNotifications,
+  getUser,
 };
