@@ -13,7 +13,7 @@ import { User } from "../models/user.models";
 import createNotification from '../utils/createNotifications';
 
 
-export const joinAuctionRoom = async (socket: Socket, auctionId: string) => {
+const joinAuctionRoom = async (socket: Socket, auctionId: string) => {
   
   try {
     const auction = await Auction.findById(auctionId);
@@ -79,13 +79,23 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-  if (bidAmount <= auction.startPrice && auction.currentPrice === auction.startPrice) {
-    auction.currentPrice = bidAmount;
-  } else if (bidAmount <= auction.currentPrice) {
-    return res.status(400).json({
-      success: false,
-      message: "Bid amount must be higher than the current price",
-    });
+  const hasPriorBids = auction.bidders.length > 0;
+  if (!hasPriorBids) {
+      if (bidAmount < auction.startPrice) {
+          return res.status(400).json({
+              success: false,
+              message: "First bid must be at least equal to the base price",
+          });
+      }
+      auction.currentPrice = bidAmount;
+  } else {
+      if (bidAmount <= auction.currentPrice) {
+          return res.status(400).json({
+              success: false,
+              message: "Bid amount must be higher than the current price",
+          });
+      }
+      auction.currentPrice = bidAmount;
   }
 
 
@@ -224,4 +234,4 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId ) {
   }
 }
 
-export { bidInAuction };
+export { bidInAuction , joinAuctionRoom};

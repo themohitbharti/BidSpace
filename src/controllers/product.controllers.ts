@@ -78,7 +78,7 @@ if (!coverImages) {
 
   const savedAuction = await newAuction.save();
 
-  savedProduct.auctionId = savedAuction._id as mongoose.Types.ObjectId;
+  savedProduct.auctionId = savedAuction._id as mongoose.Schema.Types.ObjectId;
   await savedProduct.save();
 
   const cacheKey = `product:${savedProduct._id}`;
