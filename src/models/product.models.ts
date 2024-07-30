@@ -6,12 +6,12 @@ export interface IProduct extends Document {
   description?: string;
   category: string;
   coverImages?: string[];
-  listedBy: mongoose.Types.ObjectId;
+  listedBy: mongoose.Schema.Types.ObjectId;
   status: 'live' | 'sold' | 'unsold';
   finalSoldPrice?: number;
-  auctionId?: mongoose.Types.ObjectId;
+  auctionId?: mongoose.Schema.Types.ObjectId;
   finalBid?: {
-    userId: mongoose.Types.ObjectId;
+    userId: mongoose.Schema.Types.ObjectId;
     bidAmount: number;
   };
   createdAt: Date;

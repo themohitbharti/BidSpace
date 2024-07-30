@@ -1,12 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAuction extends Document {
-  productId: mongoose.Types.ObjectId;
+  productId: mongoose.Schema.Types.ObjectId;
   startPrice: number;
   currentPrice: number;
   endTime: Date;
   bidders: {
-    userId: mongoose.Types.ObjectId;
+    userId: mongoose.Schema.Types.ObjectId;
     bidAmount: number;
   }[];
   createdAt: Date;

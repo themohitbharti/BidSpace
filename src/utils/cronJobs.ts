@@ -4,6 +4,8 @@ import { BidModel } from '../models/bid.models';
 import { Product } from '../models/product.models'; 
 import { User } from '../models/user.models';
 import { redisClient } from '../config/redisClient';
+import createNotification from '../utils/createNotifications';
+import mongoose from 'mongoose';
 
 cron.schedule('*/20 * * * *', async () => { 
   try {
@@ -12,7 +14,9 @@ cron.schedule('*/20 * * * *', async () => {
 
     for (const auction of endedAuctions) {
 
-      const product = await Product.findOne({ auctionId: auction._id });
+      const auctionId = auction._id as mongoose.Schema.Types.ObjectId
+
+      const product = await Product.findOne({ auctionId: auctionId });
 
       if (product && product.status === 'live') {
         const streamKey = `auctionStream:${auction._id}`;
@@ -33,6 +37,8 @@ cron.schedule('*/20 * * * *', async () => {
             $inc: { coins: -highestBid.bidAmount }
           });
 
+          await createNotification(highestBid.userId, `Congratulations! You won the auction for product ${product.title}.`, auctionId);
+
         } else {
           product.status = 'unsold';
         }
@@ -46,6 +52,16 @@ cron.schedule('*/20 * * * *', async () => {
               await user.save();
             }
           }
+
+        const winnerUserId = highestBid?.userId.toString() || '';
+        for (const bidder of auction.bidders) {
+          if (bidder.userId.toString() !== winnerUserId) {
+            const user = await User.findById(bidder.userId);
+            if (user) {
+              await createNotification(bidder.userId, `Refund of ${bidder.bidAmount} coins has been processed for auction ${auction._id}.`, auctionId);
+            }
+          }
+        }
 
           await BidModel.deleteMany({ auctionId: auction._id });
           await redisClient.del(streamKey);

@@ -10,6 +10,7 @@ import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { redisClient } from "../config/redisClient";
 import { Product } from "../models/product.models";
 import { User } from "../models/user.models";
+import createNotification from '../utils/createNotifications';
 
 
 export const joinAuctionRoom = async (socket: Socket, auctionId: string) => {
@@ -47,9 +48,9 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
     await check("bidAmount").toFloat().run(req);
 
-  const { auctionId, bidAmount } = req.body as { auctionId: string; bidAmount: number; };;
+  const { auctionId, bidAmount } = req.body as { auctionId: mongoose.Schema.Types.ObjectId; bidAmount: number; };;
   const user = req.user
-  const userId = req.user._id as mongoose.Types.ObjectId;
+  const userId = req.user._id as mongoose.Schema.Types.ObjectId;
 
   if (!auctionId || !bidAmount) {
     return res.status(400).json({
@@ -70,7 +71,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   const currentTime = new Date();
   if (auction.endTime <= currentTime) {
 
-    await cleanupAuctionBids(new mongoose.Types.ObjectId(auctionId));
+    await cleanupAuctionBids(auctionId);
 
     return res.status(400).json({
       success: false,
@@ -102,7 +103,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
   auction.bidders = auction.bidders.filter(bidder => bidder.userId.toString() !== userId.toString());
-  auction.bidders.push({ userId: new mongoose.Types.ObjectId(userId), bidAmount });
+  auction.bidders.push({ userId: userId, bidAmount });
   await auction.save();
 
   user.reservedCoins += extraAmount;
@@ -163,7 +164,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   });
 });
 
-async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
+async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId ) {
   const bids = await BidModel.find({ auctionId });
 
   if (bids.length > 0) {
@@ -184,16 +185,23 @@ async function cleanupAuctionBids(auctionId: mongoose.Types.ObjectId ) {
         $push: { productsPurchased: product._id },
         $inc: { coins: -lastBid.bidAmount }
       });
+
+      await createNotification(lastBid.userId, `Congratulations! You won the auction for product ${product.title}.`, auctionId);
     }
 
     const auction = await Auction.findOne({_id: auctionId})
     if(auction){
+      const winnerUserId = lastBid.userId.toString();
       for (const bidder of auction.bidders) {
       const user = await User.findById(bidder.userId);
       if (user) {
         user.coins += bidder.bidAmount;
         user.reservedCoins -= bidder.bidAmount;
         await user.save();
+
+        if (bidder.userId.toString() !== winnerUserId) {
+          await createNotification(bidder.userId, `Refund of ${bidder.bidAmount} coins has been processed for auction ${auctionId}.`, auctionId);
+        }
       }
     }
     }
