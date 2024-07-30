@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { check, body, validationResult } from "express-validator";
 import mongoose from "mongoose";
+import { Socket } from 'socket.io';
 import { asyncHandler } from "../utils/asyncHandler";
 import {Auction , IAuction} from "../models/auction.models";
 import {BidModel } from "../models/bid.models";
@@ -8,6 +9,38 @@ import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { redisClient } from "../config/redisClient";
 import { Product } from "../models/product.models";
 import { User } from "../models/user.models";
+
+
+export const joinAuctionRoom = async (socket: Socket, auctionId: string) => {
+  
+  try {
+    const auction = await Auction.findById(auctionId);
+  
+    if (!auction) {
+      socket.emit('error', 'Auction not found.');
+      return;
+    }
+  
+    const currentTime = new Date();
+    if (auction.endTime <= currentTime) {
+      socket.emit('error', 'Auction has already ended.');
+      return;
+    }
+  
+    console.log(`User ${socket.id} joined auction room: ${auctionId}`);
+    
+    socket.join(`auction:${auctionId}`);
+  
+    // Emit a message to the user confirming they have joined the room
+    socket.emit('joinedAuctionRoom', `You have joined auction room: ${auctionId}`);
+  
+    // Optionally notify other users in the room (excluding the sender) about the new participant
+    socket.to(`auction:${auctionId}`).emit('newParticipant', `User ${socket.id} has joined the auction.`);
+  } catch (error) {
+    console.error('Error joining auction room:', error);
+    socket.emit('error', 'An error occurred while joining the auction room.');
+  }
+};
 
 const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 

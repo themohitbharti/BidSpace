@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { app } from "./app";
 import connectDB from "./db/conn";
+import { joinAuctionRoom } from './controllers/auction.controllers';
 
 dotenv.config();
 connectDB();
@@ -21,6 +22,10 @@ const io = new Server(server, {
 
 io.on("connection" , (socket) => {
   console.log(`user connected ${socket.id}`)
+
+  socket.on("joinAuctionRoom", (auctionId) => {
+    joinAuctionRoom(socket, auctionId);
+  });
 
   socket.on("message" , (message) => {
       console.log("message: ", message)
@@ -41,3 +46,5 @@ app.get("/", (req: any, res: any) => {
 server.listen(port, () => {
   console.log(`Server is up and Running on port ${port}`);
 });
+
+export {io}
