@@ -296,5 +296,59 @@ const showPurchasedProducts = asyncHandler(async (req: CustomRequest, res: Respo
   });
 });
 
+const searchProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
+  const { query } = req.body;
 
-export { listProducts, showWaitingPurchases ,showByCategory ,showProductDetails, showPurchasedProducts};
+  if (!query) {
+    return res.status(400).json({
+      success: false,
+      message: "Search query is required",
+    });
+  }
+
+  const cacheKey = `search:${query}`;
+  const cachedResults = await redisClient.get(cacheKey);
+
+  if (cachedResults) {
+    return res.status(200).json({
+      success: true,
+      message: "Search results fetched from cache",
+      data: JSON.parse(cachedResults),
+    });
+  }
+
+  const filter = {
+    status: "live",
+    $or: [
+      { title: { $regex: query, $options: "i" } },
+      { description: { $regex: query, $options: "i" } },
+    ],
+  };
+
+  const products: IProduct[] = await Product.find(filter);
+
+  if (products.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: "No products found matching the search criteria",
+    });
+  }
+
+  await redisClient.setex(cacheKey, 120, JSON.stringify(products));
+
+  return res.status(200).json({
+    success: true,
+    message: "Products found",
+    data: products,
+  });
+});
+
+
+export {
+     listProducts,
+     showWaitingPurchases ,
+     showByCategory ,
+     showProductDetails,
+     showPurchasedProducts,
+     searchProducts
+    };
