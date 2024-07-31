@@ -16,7 +16,7 @@ passport.use(
     {
       clientID: OAUTH_CLIENT_ID,
       clientSecret: OAUTH_CLIENT_SECRET,
-      callbackURL: "http://localhost:3000/auth/google/callback",
+      callbackURL: "https://bidspace.mohitbharti.live/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
