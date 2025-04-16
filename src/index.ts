@@ -40,7 +40,7 @@ io.on("connection" , (socket) => {
 })
 
 app.get("/", (req: any, res: any) => {
-  res.send("nazro me ho tum meri");
+  res.send("nazro me ho tum meri, dil me bhi ho");
   console.log("khona chahu mai raat bhar");
 });
 
