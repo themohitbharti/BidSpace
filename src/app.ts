@@ -32,7 +32,7 @@ const limiter = rateLimit({
 
 const allowedOrigins = [
   "http://localhost:3000",  // frontend dev
-  "https://bidspace-v1.vercel.app/" // deployed frontend (when ready)
+  "https://bidspace-v1.vercel.app" // deployed frontend (when ready)
 ];
 
 app.use(cors({
