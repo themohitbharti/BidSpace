@@ -321,7 +321,7 @@ const refreshAccessToken = asyncHandler(
           data: {
             accessToken: accessToken,
           },
-          safeUser,
+          user: safeUser,
         });
     } catch (error) {
       console.log(error);
