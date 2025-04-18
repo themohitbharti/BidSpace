@@ -308,18 +308,15 @@ const refreshAccessToken = asyncHandler(
       };
 
       const accessToken = await user.generateAccessToken();
-      const newRefreshToken = await user.generateRefreshToken();
 
       return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("newResfreshToken", newRefreshToken, options)
         .json({
           success: true,
           message: "new Tokens generated",
           data: {
             accessToken: accessToken,
-            refreshToken: newRefreshToken,
           },
           user,
         });
