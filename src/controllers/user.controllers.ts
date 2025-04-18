@@ -15,7 +15,7 @@ const generateOTP = (): string => {
 };
 
 const registerUser = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const {  email, fullName, password } = req.body as {
+  const { email, fullName, password } = req.body as {
     email: string;
     fullName: string;
     password: string;
@@ -39,7 +39,7 @@ const registerUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   let existedUser: UserDocument | null;
   try {
     existedUser = await User.findOne({
-      email
+      email,
     });
   } catch (error) {
     console.error("Error finding user:", error);
@@ -173,7 +173,7 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const { email, password } = req.body;
 
-  if (!email ) {
+  if (!email) {
     return res.status(402).json({
       success: false,
       message: "enter email",
@@ -187,8 +187,7 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-
-  const existedUser = await User.findOne({email});
+  const existedUser = await User.findOne({ email });
 
   if (!existedUser) {
     return res.status(400).json({
@@ -213,7 +212,7 @@ const loginUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   await existedUser.save({ validateBeforeSave: false });
 
   const loggedInUser = (await User.findOne({
-    email
+    email,
   }).select("-password -refreshToken")) as UserDocument | null;
 
   const options = {
@@ -309,6 +308,10 @@ const refreshAccessToken = asyncHandler(
 
       const accessToken = await user.generateAccessToken();
 
+      const safeUser = await User.findById(user._id)
+        .select("-password -refreshToken")
+        .lean();
+
       return res
         .status(200)
         .cookie("accessToken", accessToken, options)
@@ -318,7 +321,7 @@ const refreshAccessToken = asyncHandler(
           data: {
             accessToken: accessToken,
           },
-          user,
+          safeUser,
         });
     } catch (error) {
       console.log(error);
@@ -464,35 +467,39 @@ const resetPassword = asyncHandler(
   }
 );
 
-const getAllNotifications = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const userId = req.user._id;
-  const key = `notifications:${userId}`;
+const getAllNotifications = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id;
+    const key = `notifications:${userId}`;
 
-  try {
-    const notifications = await redisClient.lrange(key, 0, -1);
+    try {
+      const notifications = await redisClient.lrange(key, 0, -1);
 
-    if (!notifications) {
-      return res.status(404).json({
+      if (!notifications) {
+        return res.status(404).json({
+          success: false,
+          message: "No notifications found",
+        });
+      }
+
+      const parsedNotifications = notifications.map((notification) =>
+        JSON.parse(notification)
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Notifications retrieved successfully",
+        data: parsedNotifications,
+      });
+    } catch (err) {
+      console.error("Error retrieving notifications:", err);
+      return res.status(500).json({
         success: false,
-        message: 'No notifications found',
+        message: "Internal server error",
       });
     }
-
-    const parsedNotifications = notifications.map(notification => JSON.parse(notification));
-
-    return res.status(200).json({
-      success: true,
-      message: 'Notifications retrieved successfully',
-      data: parsedNotifications,
-    });
-  } catch (err) {
-    console.error('Error retrieving notifications:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
   }
-});
+);
 
 const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   const userId = req.user._id;
@@ -500,7 +507,7 @@ const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   if (!userId) {
     return res.status(400).json({
       success: false,
-      message: 'User ID not provided',
+      message: "User ID not provided",
     });
   }
 
@@ -510,20 +517,20 @@ const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'User retrieved successfully',
+      message: "User retrieved successfully",
       data: user,
     });
   } catch (err) {
-    console.error('Error retrieving user:', err);
+    console.error("Error retrieving user:", err);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   }
 });
