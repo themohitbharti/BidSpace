@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 import { Product, IProduct } from "../models/product.models";
 import { asyncHandler } from "../utils/asyncHandler";
 import { User, UserDocument } from "../models/user.models";
-import {Auction , IAuction} from "../models/auction.models";
-import {BidModel , BidDocument} from "../models/bid.models";
+import { Auction, IAuction } from "../models/auction.models";
+import { BidModel, BidDocument } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { uploadOnCloudinary } from "../utils/uploadFiles";
 import { redisClient } from "../config/redisClient";
@@ -20,22 +20,28 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
     return;
   }
 
-let coverImages;
-if (Array.isArray(req.files)) {
+  let coverImages;
+  if (Array.isArray(req.files)) {
     coverImages = req.files as Express.Multer.File[];
-} else {
-    coverImages = (req.files as { [fieldname: string]: Express.Multer.File[]; })['coverImages'];
-}
+  } else {
+    coverImages = (req.files as { [fieldname: string]: Express.Multer.File[] })[
+      "coverImages"
+    ];
+  }
 
-if (!coverImages) {
-    res.status(400).json({ success: false, message: 'No cover images uploaded' });
+  if (!coverImages) {
+    res
+      .status(400)
+      .json({ success: false, message: "No cover images uploaded" });
     return;
-}
+  }
 
-  const cloudinaryUploadPromises = coverImages.map(async (file: Express.Multer.File) => {
-    const cloudinaryResponse = await uploadOnCloudinary(file.path);
-    return cloudinaryResponse?.secure_url;
-  });
+  const cloudinaryUploadPromises = coverImages.map(
+    async (file: Express.Multer.File) => {
+      const cloudinaryResponse = await uploadOnCloudinary(file.path);
+      return cloudinaryResponse?.secure_url;
+    }
+  );
 
   const cloudinaryUrls = await Promise.all(cloudinaryUploadPromises);
 
@@ -59,14 +65,20 @@ if (!coverImages) {
   const currentTime = new Date();
 
   const auctionDurationHours = parseInt(endTime);
-  if (isNaN(auctionDurationHours) || auctionDurationHours < 1 || auctionDurationHours > 168) {
+  if (
+    isNaN(auctionDurationHours) ||
+    auctionDurationHours < 1 ||
+    auctionDurationHours > 168
+  ) {
     return res.status(400).json({
       success: false,
       message: "Auction end time must be between 1 and 168 hours",
     });
   }
 
-  const auctionEndTime = new Date(currentTime.getTime() + auctionDurationHours * 60 * 60 * 1000);
+  const auctionEndTime = new Date(
+    currentTime.getTime() + auctionDurationHours * 60 * 60 * 1000
+  );
 
   const newAuction = new Auction({
     productId: savedProduct._id,
@@ -104,22 +116,20 @@ if (!coverImages) {
       auction: savedAuction,
     },
   });
-
-  
 });
 
-
-const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Response) => {
+const showWaitingPurchases = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
     const userId = req.user._id;
 
     const cachedData = await redisClient.get(`waitingPurchases:${userId}`);
-  if (cachedData) {
-    return res.status(200).json({
-      success: true,
-      message: 'Successfully fetched waiting purchases from cache',
-      data: JSON.parse(cachedData),
-    });
-  }
+    if (cachedData) {
+      return res.status(200).json({
+        success: true,
+        message: "Successfully fetched waiting purchases from cache",
+        data: JSON.parse(cachedData),
+      });
+    }
 
     const userBids: BidDocument[] = await BidModel.find({ userId });
 
@@ -129,228 +139,305 @@ const showWaitingPurchases = asyncHandler(async (req: CustomRequest, res: Respon
       _id: { $in: auctionIds },
       endTime: { $gt: new Date() },
     });
-   
+
     const waitingPurchases = activeAuctions.map((auction) => ({
       productId: auction.productId,
       currentPrice: auction.currentPrice,
       endTime: auction.endTime,
-      bidAmount: userBids.find((bid) => bid.auctionId === auction._id)?.bidAmount,
+      bidAmount: userBids.find((bid) => bid.auctionId === auction._id)
+        ?.bidAmount,
       auctionId: auction._id,
     }));
 
-    await redisClient.setex(`waitingPurchases:${userId}`, 120, JSON.stringify(waitingPurchases)); // Cache for 2 minutes
-
+    await redisClient.setex(
+      `waitingPurchases:${userId}`,
+      120,
+      JSON.stringify(waitingPurchases)
+    ); // Cache for 2 minutes
 
     return res.status(200).json({
       success: true,
-      message: 'Successfully fetched waiting purchases',
+      message: "Successfully fetched waiting purchases",
       data: waitingPurchases,
     });
-});
-
-const showByCategory = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const {category , status, all} = req.params;
-  const { page = '1', limit = '10' } = req.query;
-
-  console.log(all)
-
-  const pageNumber = parseInt(page as string, 10) || 1;
-  const limitNumber = parseInt(limit as string, 10) || 10;
-
-  const cacheKey = all === 'all' 
-    ? `products:${category}:${status}:all` 
-    : `products:${category}:${status}:${page}:${limit}`;
-  const cachedProducts = await redisClient.get(cacheKey);
-
-  if (cachedProducts) {
-    return res.status(200).json({
-      success: true,
-      message: `Products in category '${category}' with status '${status}' fetched from cache`,
-      data: JSON.parse(cachedProducts),
-    });
   }
+);
 
-  const query: any = { category };
-  if (status === 'live') {
-    query.status = { $in: ['live'] }; 
-  } else if (status === 'ended') {
-    query.status = { $in: ['sold', 'unsold'] }; 
-  }
+const showByCategory = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const { category, status, all } = req.params;
+    const { page = "1", limit = "10" } = req.query;
 
-  let products: IProduct[];
-  
-  if (all === 'all') {
-    products = await Product.find(query).lean();
-  } else {
-    products = await Product.find(query)
-      .skip((pageNumber - 1) * limitNumber)
-      .limit(limitNumber)
-      .lean(); 
-  }
+    console.log(all);
 
-  if (products.length === 0) {
-    return res.status(404).json({
-      success: false,
-      message: `No products found in category '${category}'`,
-    });
-  }
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
 
-  await redisClient.setex(`products:${category}`, 120, JSON.stringify(products));
+    const cacheKey =
+      all === "all"
+        ? `products:${category}:${status}:all`
+        : `products:${category}:${status}:${page}:${limit}`;
+    const cachedProducts = await redisClient.get(cacheKey);
 
-  return res.status(200).json({
-    success: true,
-    message: `Products in category '${category}' fetched from database`,
-    data: products,
-  });
-});
-
-const showProductDetails = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const productId = req.params.id;
-
-  const cachedProduct = await redisClient.get(`product:${productId}`);
-  const cachedAuction = await redisClient.get(`auction:${productId}`);
-
-  let product: IProduct | null = null;
-  let auction: IAuction | null = null;
-
-  if (cachedProduct && cachedAuction) {
-    product = JSON.parse(cachedProduct);
-    auction = JSON.parse(cachedAuction);
-  } else {
-    product = await Product.findById(productId);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
+    if (cachedProducts) {
+      return res.status(200).json({
+        success: true,
+        message: `Products in category '${category}' with status '${status}' fetched from cache`,
+        data: JSON.parse(cachedProducts),
       });
     }
 
-    auction = await Auction.findOne({ productId: product._id });
+    const query: any = { category };
+    if (status === "live") {
+      query.status = { $in: ["live"] };
+    } else if (status === "ended") {
+      query.status = { $in: ["sold", "unsold"] };
+    }
 
-    if (!auction) {
+    let products: IProduct[];
+
+    if (all === "all") {
+      products = await Product.find(query).lean();
+    } else {
+      products = await Product.find(query)
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber)
+        .lean();
+    }
+
+    if (products.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Auction not found for this product",
+        message: `No products found in category '${category}'`,
       });
     }
 
-    await redisClient.setex(`product:${productId}`, 120, JSON.stringify(product)); 
-    await redisClient.setex(`auction:${productId}`, 120, JSON.stringify(auction)); 
-  }
+    await redisClient.setex(
+      `products:${category}`,
+      120,
+      JSON.stringify(products)
+    );
 
-  let parsedBids: Array<{ userId: string; bidAmount: number; timestamp: string }> = [];
-
-  if(auction){
-    const streamKey = `auctionStream:${auction._id}`;
-  const liveBids = await redisClient.xrange(streamKey, '-', '+', 'COUNT', 15);
-  const parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
-
-  if (parsedBids.length > 0) {
-    const lastBid = parsedBids[parsedBids.length - 1];
-    auction.currentPrice = lastBid.bidAmount;
-  }
-  }
-
-  return res.status(200).json({
-    success: true,
-    message: "Product details fetched successfully",
-    data: { product, auction, liveBids: parsedBids },
-  });
-});
-
-
-const showPurchasedProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const userId = req.user._id;
-
-  const cacheKey = `purchasedProducts:${userId}`;
-  const cachedData = await redisClient.get(cacheKey);
-
-  if (cachedData) {
     return res.status(200).json({
       success: true,
-      message: 'Successfully fetched purchased products from cache',
-      data: JSON.parse(cachedData),
+      message: `Products in category '${category}' fetched from database`,
+      data: products,
     });
   }
+);
 
-  const user: UserDocument | null = await User.findById(userId).populate('productsPurchased');
+const showProductDetails = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const productId = req.params.id;
 
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: 'User not found',
-    });
-  }
+    const cachedProduct = await redisClient.get(`product:${productId}`);
+    const cachedAuction = await redisClient.get(`auction:${productId}`);
 
-  const productIds = user.productsPurchased;
+    let product: IProduct | null = null;
+    let auction: IAuction | null = null;
 
-  const purchasedProducts: IProduct[] = await Product.find({ _id: { $in: productIds } });
+    if (cachedProduct && cachedAuction) {
+      product = JSON.parse(cachedProduct);
+      auction = JSON.parse(cachedAuction);
+    } else {
+      product = await Product.findById(productId);
 
-  await redisClient.setex(cacheKey, 60, JSON.stringify(purchasedProducts));
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
 
-  return res.status(200).json({
-    success: true,
-    message: 'Successfully fetched purchased products',
-    data: purchasedProducts,
-  });
-});
+      auction = await Auction.findOne({ productId: product._id });
 
-const searchProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const query = req.query.query as string;
+      if (!auction) {
+        return res.status(404).json({
+          success: false,
+          message: "Auction not found for this product",
+        });
+      }
 
-  console.log(query)
+      await redisClient.setex(
+        `product:${productId}`,
+        120,
+        JSON.stringify(product)
+      );
+      await redisClient.setex(
+        `auction:${productId}`,
+        120,
+        JSON.stringify(auction)
+      );
+    }
 
-  if (!query) {
-    return res.status(400).json({
-      success: false,
-      message: "Search query is required",
-    });
-  }
+    let parsedBids: Array<{
+      userId: string;
+      bidAmount: number;
+      timestamp: string;
+    }> = [];
 
-  const cacheKey = `search:${query}`;
-  const cachedResults = await redisClient.get(cacheKey);
+    if (auction) {
+      const streamKey = `auctionStream:${auction._id}`;
+      const liveBids = await redisClient.xrange(
+        streamKey,
+        "-",
+        "+",
+        "COUNT",
+        15
+      );
+      const parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
 
-  if (cachedResults) {
+      if (parsedBids.length > 0) {
+        const lastBid = parsedBids[parsedBids.length - 1];
+        auction.currentPrice = lastBid.bidAmount;
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Search results fetched from cache",
-      data: JSON.parse(cachedResults),
+      message: "Product details fetched successfully",
+      data: { product, auction, liveBids: parsedBids },
     });
   }
+);
 
-  const filter = {
-    status: "live",
-    $or: [
-      { title: { $regex: query, $options: "i" } },
-      { description: { $regex: query, $options: "i" } },
-    ],
-  };
+const showPurchasedProducts = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id;
 
-  const products: IProduct[] = await Product.find(filter);
+    const cacheKey = `purchasedProducts:${userId}`;
+    const cachedData = await redisClient.get(cacheKey);
 
-  if (products.length === 0) {
-    return res.status(404).json({
-      success: false,
-      message: "No products found matching the search criteria",
+    if (cachedData) {
+      return res.status(200).json({
+        success: true,
+        message: "Successfully fetched purchased products from cache",
+        data: JSON.parse(cachedData),
+      });
+    }
+
+    const user: UserDocument | null = await User.findById(userId).populate(
+      "productsPurchased"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const productIds = user.productsPurchased;
+
+    const purchasedProducts: IProduct[] = await Product.find({
+      _id: { $in: productIds },
+    });
+
+    await redisClient.setex(cacheKey, 60, JSON.stringify(purchasedProducts));
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully fetched purchased products",
+      data: purchasedProducts,
     });
   }
+);
 
-  await redisClient.setex(cacheKey, 120, JSON.stringify(products));
+const searchProducts = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const query = req.query.query as string;
 
-  return res.status(200).json({
-    success: true,
-    message: "Products found",
-    data: products,
-  });
-});
+    console.log(query);
 
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+    const cacheKey = `search:${query}`;
+    const cachedResults = await redisClient.get(cacheKey);
+
+    if (cachedResults) {
+      return res.status(200).json({
+        success: true,
+        message: "Search results fetched from cache",
+        data: JSON.parse(cachedResults),
+      });
+    }
+
+    const filter = {
+      status: "live",
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+      ],
+    };
+
+    const products: IProduct[] = await Product.find(filter);
+
+    if (products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found matching the search criteria",
+      });
+    }
+
+    await redisClient.setex(cacheKey, 120, JSON.stringify(products));
+
+    return res.status(200).json({
+      success: true,
+      message: "Products found",
+      data: products,
+    });
+  }
+);
+
+const getRecentProducts = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const limit = 5; // Fixed to return 5 recent products
+
+    const cacheKey = `recentProducts:${limit}`;
+    const cachedResults = await redisClient.get(cacheKey);
+
+    if (cachedResults) {
+      return res.status(200).json({
+        success: true,
+        message: "Recent products fetched from cache",
+        data: JSON.parse(cachedResults),
+      });
+    }
+
+    const recentProducts = await Product.find({ status: "live" })
+      .sort({ createdAt: -1 }) // Sort by creation date, newest first
+      .limit(limit)
+      .lean();
+
+    if (recentProducts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No active products found",
+      });
+    }
+
+    // Cache the results for 2 minutes
+    await redisClient.setex(cacheKey, 120, JSON.stringify(recentProducts));
+
+    return res.status(200).json({
+      success: true,
+      message: "Recent products retrieved successfully",
+      data: recentProducts,
+    });
+  }
+);
 
 export {
-     listProducts,
-     showWaitingPurchases ,
-     showByCategory ,
-     showProductDetails,
-     showPurchasedProducts,
-     searchProducts
-    };
+  listProducts,
+  showWaitingPurchases,
+  showByCategory,
+  showProductDetails,
+  showPurchasedProducts,
+  searchProducts,
+  getRecentProducts,
+};
