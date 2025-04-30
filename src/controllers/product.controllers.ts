@@ -297,7 +297,9 @@ const showPurchasedProducts = asyncHandler(async (req: CustomRequest, res: Respo
 });
 
 const searchProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
-  const { query } = req.body;
+  const query = req.query.query as string;
+
+  console.log(query)
 
   if (!query) {
     return res.status(400).json({
