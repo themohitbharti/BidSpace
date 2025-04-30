@@ -432,6 +432,89 @@ const getRecentProducts = asyncHandler(
   }
 );
 
+const getTrendingProducts = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const limit = 5; // Fixed to return 5 trending products
+
+    const cacheKey = `trendingProducts:${limit}`;
+    const cachedResults = await redisClient.get(cacheKey);
+
+    if (cachedResults) {
+      return res.status(200).json({
+        success: true,
+        message: "Trending products fetched from cache",
+        data: JSON.parse(cachedResults),
+      });
+    }
+
+    // First, get all live auctions with their bidder counts
+    const liveAuctions = await Auction.aggregate([
+      {
+        $match: {
+          endTime: { $gt: new Date() },
+        },
+      },
+      {
+        $project: {
+          productId: 1,
+          bidCount: { $size: "$bidders" },
+        },
+      },
+      {
+        $sort: {
+          bidCount: -1,
+        },
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    if (liveAuctions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No active auctions with bids found",
+      });
+    }
+
+    // Get the productIds from the top auctions
+    const productIds = liveAuctions.map(
+      (auction) => new mongoose.Types.ObjectId(auction.productId)
+    );
+
+    // Fetch the actual products
+    const trendingProducts = await Product.find({
+      _id: { $in: productIds },
+      status: "live",
+    }).lean();
+
+    // Sort the products in the same order as the auctions
+    const sortedProducts = productIds
+      .map((id) =>
+        trendingProducts.find(
+          (product) => product._id.toString() === id.toString()
+        )
+      )
+      .filter(Boolean);
+
+    if (sortedProducts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No trending products found",
+      });
+    }
+
+    // Cache the results for 5 minutes
+    await redisClient.setex(cacheKey, 60, JSON.stringify(sortedProducts));
+
+    return res.status(200).json({
+      success: true,
+      message: "Trending products retrieved successfully",
+      data: sortedProducts,
+    });
+  }
+);
+
 export {
   listProducts,
   showWaitingPurchases,
@@ -440,4 +523,5 @@ export {
   showPurchasedProducts,
   searchProducts,
   getRecentProducts,
+  getTrendingProducts,
 };

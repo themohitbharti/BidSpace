@@ -7,6 +7,7 @@ import {
   showPurchasedProducts,
   searchProducts,
   getRecentProducts,
+  getTrendingProducts,
 } from "../controllers/product.controllers";
 import { upload } from "../middlewares/multer.middlewares";
 import { verifyToken } from "../middlewares/verifyToken.middleware";
@@ -36,5 +37,7 @@ router.get("/purchased", verifyToken, showPurchasedProducts);
 router.get("/search", verifyToken, searchProducts);
 
 router.get("/recent", verifyToken, getRecentProducts);
+
+router.get("/trending", verifyToken, getTrendingProducts);
 
 export default router;
