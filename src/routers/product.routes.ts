@@ -30,11 +30,11 @@ router.get("/waiting", verifyToken, showWaitingPurchases);
 
 router.get("/list/:category/:status/:all", verifyToken, showByCategory);
 
-router.get("/details/:id", verifyToken, showProductDetails);
+router.get("/details/:id", showProductDetails);
 
 router.get("/purchased", verifyToken, showPurchasedProducts);
 
-router.get("/search", verifyToken, searchProducts);
+router.get("/search", searchProducts);
 
 router.get("/recent", getRecentProducts);
 
