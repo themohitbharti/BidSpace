@@ -1,55 +1,60 @@
 import { Request, Response } from "express";
 import { check, body, validationResult } from "express-validator";
 import mongoose from "mongoose";
-import { Socket } from 'socket.io';
-import {io} from "../index";
+import { Socket } from "socket.io";
+import { io } from "../index";
 import { asyncHandler } from "../utils/asyncHandler";
-import {Auction , IAuction} from "../models/auction.models";
-import {BidModel } from "../models/bid.models";
+import { Auction, IAuction } from "../models/auction.models";
+import { BidModel } from "../models/bid.models";
 import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { redisClient } from "../config/redisClient";
 import { Product } from "../models/product.models";
 import { User } from "../models/user.models";
-import createNotification from '../utils/createNotifications';
-
+import createNotification from "../utils/createNotifications";
 
 const joinAuctionRoom = async (socket: Socket, auctionId: string) => {
-  
   try {
     const auction = await Auction.findById(auctionId);
-  
+
     if (!auction) {
-      socket.emit('error', 'Auction not found.');
+      socket.emit("error", "Auction not found.");
       return;
     }
-  
+
     const currentTime = new Date();
     if (auction.endTime <= currentTime) {
-      socket.emit('error', 'Auction has already ended.');
+      socket.emit("error", "Auction has already ended.");
       return;
     }
-  
+
     console.log(`User ${socket.id} joined auction room: ${auctionId}`);
-    
+
     socket.join(`auction:${auctionId}`);
-  
+
     // Emit a message to the user confirming they have joined the room
-    socket.emit('joinedAuctionRoom', `You have joined auction room: ${auctionId}`);
-  
+    socket.emit(
+      "joinedAuctionRoom",
+      `You have joined auction room: ${auctionId}`
+    );
+
     // Optionally notify other users in the room (excluding the sender) about the new participant
-    socket.to(`auction:${auctionId}`).emit('newParticipant', `User ${socket.id} has joined the auction.`);
+    socket
+      .to(`auction:${auctionId}`)
+      .emit("newParticipant", `User ${socket.id} has joined the auction.`);
   } catch (error) {
-    console.error('Error joining auction room:', error);
-    socket.emit('error', 'An error occurred while joining the auction room.');
+    console.error("Error joining auction room:", error);
+    socket.emit("error", "An error occurred while joining the auction room.");
   }
 };
 
 const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
+  await check("bidAmount").toFloat().run(req);
 
-    await check("bidAmount").toFloat().run(req);
-
-  const { auctionId, bidAmount } = req.body as { auctionId: mongoose.Schema.Types.ObjectId; bidAmount: number; };;
-  const user = req.user
+  const { auctionId, bidAmount } = req.body as {
+    auctionId: mongoose.Schema.Types.ObjectId;
+    bidAmount: number;
+  };
+  const user = req.user;
   const userId = req.user._id as mongoose.Schema.Types.ObjectId;
 
   if (!auctionId || !bidAmount) {
@@ -70,7 +75,6 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const currentTime = new Date();
   if (auction.endTime <= currentTime) {
-
     await cleanupAuctionBids(auctionId);
 
     return res.status(400).json({
@@ -81,26 +85,28 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const hasPriorBids = auction.bidders.length > 0;
   if (!hasPriorBids) {
-      if (bidAmount < auction.startPrice) {
-          return res.status(400).json({
-              success: false,
-              message: "First bid must be at least equal to the base price",
-          });
-      }
-      auction.currentPrice = bidAmount;
+    if (bidAmount < auction.startPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "First bid must be at least equal to the base price",
+      });
+    }
+    auction.currentPrice = bidAmount;
   } else {
-      if (bidAmount <= auction.currentPrice) {
-          return res.status(400).json({
-              success: false,
-              message: "Bid amount must be higher than the current price",
-          });
-      }
-      auction.currentPrice = bidAmount;
+    if (bidAmount <= auction.currentPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Bid amount must be higher than the current price",
+      });
+    }
+    auction.currentPrice = bidAmount;
   }
 
-
   const previousBids = await BidModel.find({ auctionId, userId });
-  const highestPreviousBid = previousBids.length > 0 ? previousBids[previousBids.length - 1].bidAmount : 0;
+  const highestPreviousBid =
+    previousBids.length > 0
+      ? previousBids[previousBids.length - 1].bidAmount
+      : 0;
   const extraAmount = Math.max(0, bidAmount - highestPreviousBid);
 
   const availableMoney = user.coins;
@@ -112,7 +118,9 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     });
   }
 
-  auction.bidders = auction.bidders.filter(bidder => bidder.userId.toString() !== userId.toString());
+  auction.bidders = auction.bidders.filter(
+    (bidder) => bidder.userId.toString() !== userId.toString()
+  );
   auction.bidders.push({ userId: userId, bidAmount });
   await auction.save();
 
@@ -136,7 +144,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   });
 
   try {
-    await redisClient.set(cacheKey, cacheValue, 'EX', 60);
+    await redisClient.set(cacheKey, cacheValue, "EX", 60);
   } catch (error) {
     console.error("Error setting cache:", error);
   }
@@ -149,13 +157,13 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   });
 
   try {
-    await redisClient.xadd(streamKey, 'MAXLEN', '~', 15, '*', 'bid', eventData);
+    await redisClient.xadd(streamKey, "MAXLEN", "~", 15, "*", "bid", eventData);
     console.log("Bid added to Redis stream successfully");
   } catch (error) {
     console.error("Error adding bid to Redis stream:", error);
   }
 
-  io.to(`auction:${auctionId}`).emit('newBid', {
+  io.to(`auction:${auctionId}`).emit("newBid", {
     userId,
     bidAmount,
     auctionId,
@@ -163,6 +171,17 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
     bidders: auction.bidders,
     timestamp: new Date().toISOString(),
   });
+
+  // After updating the auction's current price:
+
+  auction.currentPrice = bidAmount;
+  await auction.save();
+
+  // Also update the product
+  await Product.findOneAndUpdate(
+    { auctionId: auctionId },
+    { currentPrice: bidAmount }
+  );
 
   return res.status(201).json({
     success: true,
@@ -174,7 +193,7 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   });
 });
 
-async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId ) {
+async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
   const bids = await BidModel.find({ auctionId });
 
   if (bids.length > 0) {
@@ -187,40 +206,46 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId ) {
         userId: lastBid.userId,
         bidAmount: lastBid.bidAmount,
       };
-      product.finalSoldPrice = lastBid.bidAmount; 
-      product.status = 'sold';
+      product.finalSoldPrice = lastBid.bidAmount;
+      product.status = "sold";
       await product.save();
 
       await User.findByIdAndUpdate(lastBid.userId, {
         $push: { productsPurchased: product._id },
-        $inc: { coins: -lastBid.bidAmount }
+        $inc: { coins: -lastBid.bidAmount },
       });
 
-      await createNotification(lastBid.userId, `Congratulations! You won the auction for product ${product.title}.`, auctionId);
+      await createNotification(
+        lastBid.userId,
+        `Congratulations! You won the auction for product ${product.title}.`,
+        auctionId
+      );
     }
 
-    const auction = await Auction.findOne({_id: auctionId})
-    if(auction){
+    const auction = await Auction.findOne({ _id: auctionId });
+    if (auction) {
       const winnerUserId = lastBid.userId.toString();
       for (const bidder of auction.bidders) {
-      const user = await User.findById(bidder.userId);
-      if (user) {
-        user.coins += bidder.bidAmount;
-        user.reservedCoins -= bidder.bidAmount;
-        await user.save();
+        const user = await User.findById(bidder.userId);
+        if (user) {
+          user.coins += bidder.bidAmount;
+          user.reservedCoins -= bidder.bidAmount;
+          await user.save();
 
-        if (bidder.userId.toString() !== winnerUserId) {
-          await createNotification(bidder.userId, `Refund of ${bidder.bidAmount} coins has been processed for auction ${auctionId}.`, auctionId);
+          if (bidder.userId.toString() !== winnerUserId) {
+            await createNotification(
+              bidder.userId,
+              `Refund of ${bidder.bidAmount} coins has been processed for auction ${auctionId}.`,
+              auctionId
+            );
+          }
         }
       }
     }
-    }
-    
-  }
-  else{
+  } else {
     const product = await Product.findOne({ auctionId });
     if (product) {
-      product.status = 'unsold'; 
+      product.status = "unsold";
       await product.save();
     }
   }
@@ -234,4 +259,4 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId ) {
   }
 }
 
-export { bidInAuction , joinAuctionRoom};
+export { bidInAuction, joinAuctionRoom };

@@ -45,23 +45,6 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   const cloudinaryUrls = await Promise.all(cloudinaryUploadPromises);
 
-  const newProduct = new Product({
-    title,
-    description,
-    basePrice,
-    category,
-    coverImages: cloudinaryUrls,
-    listedBy: user._id,
-  });
-
-  const savedProduct: IProduct = await newProduct.save();
-
-  if (savedProduct && savedProduct._id) {
-    const productId: string = savedProduct._id.toString();
-    user.productsListed.push(productId);
-    await user.save();
-  }
-
   const currentTime = new Date();
 
   const auctionDurationHours = parseInt(endTime);
@@ -79,6 +62,25 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
   const auctionEndTime = new Date(
     currentTime.getTime() + auctionDurationHours * 60 * 60 * 1000
   );
+
+  const newProduct = new Product({
+    title,
+    description,
+    basePrice,
+    category,
+    coverImages: cloudinaryUrls,
+    listedBy: user._id,
+    currentPrice: basePrice, // Initialize with base price
+    endTime: auctionEndTime, // Set from input
+  });
+
+  const savedProduct: IProduct = await newProduct.save();
+
+  if (savedProduct && savedProduct._id) {
+    const productId: string = savedProduct._id.toString();
+    user.productsListed.push(productId);
+    await user.save();
+  }
 
   const newAuction = new Auction({
     productId: savedProduct._id,
@@ -163,6 +165,7 @@ const showWaitingPurchases = asyncHandler(
   }
 );
 
+// Update showByCategory function
 const showByCategory = asyncHandler(
   async (req: CustomRequest, res: Response) => {
     const { category, status, all } = req.params;
@@ -210,6 +213,16 @@ const showByCategory = asyncHandler(
         success: false,
         message: `No products found in category '${category}'`,
       });
+    }
+
+    // Update current prices from auctions
+    for (const product of products) {
+      if (product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
     }
 
     await redisClient.setex(
@@ -301,6 +314,7 @@ const showProductDetails = asyncHandler(
   }
 );
 
+// Update showPurchasedProducts function
 const showPurchasedProducts = asyncHandler(
   async (req: CustomRequest, res: Response) => {
     const userId = req.user._id;
@@ -331,7 +345,17 @@ const showPurchasedProducts = asyncHandler(
 
     const purchasedProducts: IProduct[] = await Product.find({
       _id: { $in: productIds },
-    });
+    }).lean();
+
+    // Update current prices from auctions
+    for (const product of purchasedProducts) {
+      if (product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
+    }
 
     await redisClient.setex(cacheKey, 60, JSON.stringify(purchasedProducts));
 
@@ -343,6 +367,7 @@ const showPurchasedProducts = asyncHandler(
   }
 );
 
+// Update searchProducts function
 const searchProducts = asyncHandler(
   async (req: CustomRequest, res: Response) => {
     const query = req.query.query as string;
@@ -375,13 +400,23 @@ const searchProducts = asyncHandler(
       ],
     };
 
-    const products: IProduct[] = await Product.find(filter);
+    const products: IProduct[] = await Product.find(filter).lean();
 
     if (products.length === 0) {
       return res.status(404).json({
         success: false,
         message: "No products found matching the search criteria",
       });
+    }
+
+    // Update current prices from auctions
+    for (const product of products) {
+      if (product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
     }
 
     await redisClient.setex(cacheKey, 120, JSON.stringify(products));
@@ -396,8 +431,7 @@ const searchProducts = asyncHandler(
 
 const getRecentProducts = asyncHandler(
   async (req: CustomRequest, res: Response) => {
-    const limit = 5; // Fixed to return 5 recent products
-
+    const limit = 5;
     const cacheKey = `recentProducts:${limit}`;
     const cachedResults = await redisClient.get(cacheKey);
 
@@ -409,8 +443,9 @@ const getRecentProducts = asyncHandler(
       });
     }
 
+    // Get recent products
     const recentProducts = await Product.find({ status: "live" })
-      .sort({ createdAt: -1 }) // Sort by creation date, newest first
+      .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
@@ -421,7 +456,16 @@ const getRecentProducts = asyncHandler(
       });
     }
 
-    // Cache the results for 2 minutes
+    // Update current prices from auctions if needed
+    for (const product of recentProducts) {
+      if (product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
+    }
+
     await redisClient.setex(cacheKey, 120, JSON.stringify(recentProducts));
 
     return res.status(200).json({
@@ -502,6 +546,16 @@ const getTrendingProducts = asyncHandler(
         success: false,
         message: "No trending products found",
       });
+    }
+
+    // Update current prices for all trending products
+    for (const product of sortedProducts) {
+      if (product && product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
     }
 
     // Cache the results for 5 minutes
