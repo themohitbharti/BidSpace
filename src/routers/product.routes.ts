@@ -36,8 +36,8 @@ router.get("/purchased", verifyToken, showPurchasedProducts);
 
 router.get("/search", verifyToken, searchProducts);
 
-router.get("/recent", verifyToken, getRecentProducts);
+router.get("/recent", getRecentProducts);
 
-router.get("/trending", verifyToken, getTrendingProducts);
+router.get("/trending", getTrendingProducts);
 
 export default router;
