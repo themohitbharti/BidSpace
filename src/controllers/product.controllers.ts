@@ -108,7 +108,7 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
     updatedAt: savedProduct.updatedAt,
   });
 
-  await redisClient.setex(cacheKey, 300, cacheValue);
+  await redisClient.setex(cacheKey, 2, cacheValue);
 
   return res.status(201).json({
     success: true,
@@ -298,7 +298,7 @@ const showProductDetails = asyncHandler(
         "COUNT",
         15
       );
-      const parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
+       parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
 
       if (parsedBids.length > 0) {
         const lastBid = parsedBids[parsedBids.length - 1];
