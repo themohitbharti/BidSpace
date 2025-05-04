@@ -273,12 +273,12 @@ const showProductDetails = asyncHandler(
 
       await redisClient.setex(
         `product:${productId}`,
-        120,
+        1,
         JSON.stringify(product)
       );
       await redisClient.setex(
         `auction:${productId}`,
-        120,
+        1,
         JSON.stringify(auction)
       );
     }
