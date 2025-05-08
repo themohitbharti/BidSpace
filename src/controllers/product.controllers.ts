@@ -13,6 +13,14 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
   const { title, description, basePrice, category, endTime } = req.body;
   const userId = req.user._id;
 
+  // Add basePrice validation
+  if (!basePrice || isNaN(Number(basePrice)) || Number(basePrice) <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Base price must be a number greater than 0",
+    });
+  }
+
   const user: UserDocument | null = await User.findById(userId);
 
   if (!user) {
@@ -298,7 +306,7 @@ const showProductDetails = asyncHandler(
         "COUNT",
         15
       );
-       parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
+      parsedBids = liveBids.map((bid) => JSON.parse(bid[1][1]));
 
       if (parsedBids.length > 0) {
         const lastBid = parsedBids[parsedBids.length - 1];
