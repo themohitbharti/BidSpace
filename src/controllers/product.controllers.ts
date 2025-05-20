@@ -456,9 +456,10 @@ const getRecentProducts = asyncHandler(
       .lean();
 
     if (recentProducts.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No active products found",
+      return res.status(200).json({
+        success: true,
+        message: "No recent products found",
+        data: [],
       });
     }
 
@@ -521,9 +522,10 @@ const getTrendingProducts = asyncHandler(
     ]);
 
     if (liveAuctions.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No active auctions with bids found",
+      return res.status(200).json({
+        success: true,
+        message: "No trending products found",
+        data: [],
       });
     }
 
@@ -548,9 +550,10 @@ const getTrendingProducts = asyncHandler(
       .filter(Boolean);
 
     if (sortedProducts.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "No trending products found",
+        data: [],
       });
     }
 
