@@ -179,8 +179,6 @@ const showByCategory = asyncHandler(
     const { category, status, all } = req.params;
     const { page = "1", limit = "10" } = req.query;
 
-    console.log(all);
-
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
 

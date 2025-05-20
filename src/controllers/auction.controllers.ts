@@ -210,6 +210,18 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
       product.status = "sold";
       await product.save();
 
+      // Add coins to seller's account
+      await User.findByIdAndUpdate(product.listedBy, {
+        $inc: { coins: lastBid.bidAmount },
+      });
+
+      // Notify the seller
+      await createNotification(
+        product.listedBy,
+        `Your product ${product.title} has been sold for ${lastBid.bidAmount} coins.`,
+        auctionId
+      );
+
       await User.findByIdAndUpdate(lastBid.userId, {
         $push: { productsPurchased: product._id },
         $inc: { coins: -lastBid.bidAmount },

@@ -1,70 +1,92 @@
-import cron from 'node-cron';
-import { Auction } from '../models/auction.models'; 
-import { BidModel } from '../models/bid.models';
-import { Product } from '../models/product.models'; 
-import { User } from '../models/user.models';
-import { redisClient } from '../config/redisClient';
-import createNotification from '../utils/createNotifications';
-import mongoose from 'mongoose';
+import cron from "node-cron";
+import { Auction } from "../models/auction.models";
+import { BidModel } from "../models/bid.models";
+import { Product } from "../models/product.models";
+import { User } from "../models/user.models";
+import { redisClient } from "../config/redisClient";
+import createNotification from "../utils/createNotifications";
+import mongoose from "mongoose";
 
-cron.schedule('*/20 * * * *', async () => { 
+cron.schedule("*/10 * * * *", async () => {
   try {
+    console.log("cronjob started")
     const currentTime = new Date();
-    const endedAuctions = await Auction.find({ endTime: { $lte: currentTime }});
+    const endedAuctions = await Auction.find({
+      endTime: { $lte: currentTime },
+    });
 
     for (const auction of endedAuctions) {
-
-      const auctionId = auction._id as mongoose.Schema.Types.ObjectId
+      const auctionId = auction._id as mongoose.Schema.Types.ObjectId;
 
       const product = await Product.findOne({ auctionId: auctionId });
 
-      if (product && product.status === 'live') {
+      if (product && product.status === "live") {
         const streamKey = `auctionStream:${auction._id}`;
 
-        const bids = await BidModel.find({ auctionId: auction._id }).sort({ createdAt: -1 });
+        const bids = await BidModel.find({ auctionId: auction._id }).sort({
+          createdAt: -1,
+        });
         const highestBid = bids.length > 0 ? bids[0] : null;
 
         if (highestBid) {
-          product.status = 'sold';
+          product.status = "sold";
           product.finalSoldPrice = highestBid.bidAmount;
           product.finalBid = {
             userId: highestBid.userId,
-            bidAmount: highestBid.bidAmount
+            bidAmount: highestBid.bidAmount,
           };
 
-          await User.findByIdAndUpdate(highestBid.userId, {
-            $push: { productsPurchased: product._id },
-            $inc: { coins: -highestBid.bidAmount }
+          // Pay the seller
+          await User.findByIdAndUpdate(product.listedBy, {
+            $inc: { coins: highestBid.bidAmount },
           });
 
-          await createNotification(highestBid.userId, `Congratulations! You won the auction for product ${product.title}.`, auctionId);
+          // Add notification to inform the seller
+          await createNotification(
+            product.listedBy,
+            `Your product ${product.title} has been sold for ${highestBid.bidAmount} coins.`,
+            auctionId
+          );
+          await User.findByIdAndUpdate(highestBid.userId, {
+            $push: { productsPurchased: product._id },
+          });
 
+          await createNotification(
+            highestBid.userId,
+            `Congratulations! You won the auction for product ${product.title}.`,
+            auctionId
+          );
         } else {
-          product.status = 'unsold';
+          product.status = "unsold";
         }
         await product.save();
 
+        const winnerUserId = highestBid?.userId.toString() || "";
+
         for (const bidder of auction.bidders) {
-            const user = await User.findById(bidder.userId);
-            if (user) {
+          const user = await User.findById(bidder.userId);
+          if (user) {
+            if (bidder.userId.toString() !== winnerUserId) {
+              // Non-winners get full refund
               user.coins += bidder.bidAmount;
+              user.reservedCoins -= bidder.bidAmount;
+              await user.save();
+
+              await createNotification(
+                bidder.userId,
+                `Refund of ${bidder.bidAmount} coins has been processed for auction ${auction._id}.`,
+                auctionId
+              );
+            } else {
+              // Winner only gets reservedCoins cleared
               user.reservedCoins -= bidder.bidAmount;
               await user.save();
             }
           }
-
-        const winnerUserId = highestBid?.userId.toString() || '';
-        for (const bidder of auction.bidders) {
-          if (bidder.userId.toString() !== winnerUserId) {
-            const user = await User.findById(bidder.userId);
-            if (user) {
-              await createNotification(bidder.userId, `Refund of ${bidder.bidAmount} coins has been processed for auction ${auction._id}.`, auctionId);
-            }
-          }
         }
 
-          await BidModel.deleteMany({ auctionId: auction._id });
-          await redisClient.del(streamKey);
+        await BidModel.deleteMany({ auctionId: auction._id });
+        await redisClient.del(streamKey);
       }
     }
   } catch (error) {
