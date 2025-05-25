@@ -321,7 +321,7 @@ const showProductDetails = asyncHandler(
   }
 );
 
-// Update showPurchasedProducts function
+// Update showPurchasedProducts function to sort by most recent
 const showPurchasedProducts = asyncHandler(
   async (req: CustomRequest, res: Response) => {
     const userId = req.user._id;
@@ -352,7 +352,9 @@ const showPurchasedProducts = asyncHandler(
 
     const purchasedProducts: IProduct[] = await Product.find({
       _id: { $in: productIds },
-    }).lean();
+    })
+      .sort({ createdAt: -1 }) // Sort by most recent first
+      .lean();
 
     // Update current prices from auctions
     for (const product of purchasedProducts) {
@@ -580,12 +582,68 @@ const getTrendingProducts = asyncHandler(
   }
 );
 
+// Update showListedProducts function to sort by most recent
+const showListedProducts = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id;
+
+    const cacheKey = `listedProducts:${userId}`;
+    const cachedData = await redisClient.get(cacheKey);
+
+    if (cachedData) {
+      return res.status(200).json({
+        success: true,
+        message: "Successfully fetched listed products from cache",
+        data: JSON.parse(cachedData),
+      });
+    }
+
+    const user: UserDocument | null = await User.findById(userId).populate(
+      "productsListed"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const productIds = user.productsListed;
+
+    const listedProducts: IProduct[] = await Product.find({
+      _id: { $in: productIds },
+    })
+      .sort({ createdAt: -1 }) // Sort by most recent first
+      .lean();
+
+    // Update current prices from auctions
+    for (const product of listedProducts) {
+      if (product.auctionId) {
+        const auction = await Auction.findById(product.auctionId).lean();
+        if (auction && auction.currentPrice > product.currentPrice) {
+          product.currentPrice = auction.currentPrice;
+        }
+      }
+    }
+
+    await redisClient.setex(cacheKey, 60, JSON.stringify(listedProducts));
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully fetched listed products",
+      data: listedProducts,
+    });
+  }
+);
+
 export {
   listProducts,
   showWaitingPurchases,
   showByCategory,
   showProductDetails,
   showPurchasedProducts,
+  showListedProducts, // Add this export
   searchProducts,
   getRecentProducts,
   getTrendingProducts,

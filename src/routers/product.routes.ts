@@ -8,6 +8,7 @@ import {
   searchProducts,
   getRecentProducts,
   getTrendingProducts,
+  showListedProducts, // Add this import
 } from "../controllers/product.controllers";
 import { upload } from "../middlewares/multer.middlewares";
 import { verifyToken } from "../middlewares/verifyToken.middleware";
@@ -33,6 +34,8 @@ router.get("/list/:category/:status/:all", verifyToken, showByCategory);
 router.get("/details/:id", showProductDetails);
 
 router.get("/purchased", verifyToken, showPurchasedProducts);
+
+router.get("/listed", verifyToken, showListedProducts); // Add this new route
 
 router.get("/search", searchProducts);
 
