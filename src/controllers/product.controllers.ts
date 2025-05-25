@@ -215,9 +215,10 @@ const showByCategory = asyncHandler(
     }
 
     if (products.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: `No products found in category '${category}'`,
+        data: [],
       });
     }
 
@@ -409,9 +410,10 @@ const searchProducts = asyncHandler(
     const products: IProduct[] = await Product.find(filter).lean();
 
     if (products.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
         message: "No products found matching the search criteria",
+        data: [],
       });
     }
 
