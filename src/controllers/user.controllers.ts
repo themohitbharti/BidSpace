@@ -535,6 +535,46 @@ const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 });
 
+const editUserProfile = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id;
+    const { fullName } = req.body;
+
+    // Validate input
+    if (!fullName || fullName.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Full name is required for update",
+      });
+    }
+
+    // Find user and update
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: { fullName: fullName.trim() } },
+      { new: true, runValidators: true }
+    ).select("-password -refreshToken");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Clear cached user data if using Redis
+    if (redisClient) {
+      await redisClient.del(`user:${userId}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  }
+);
+
 export {
   registerUser,
   verifyOTP,
@@ -546,4 +586,5 @@ export {
   resetPassword,
   getAllNotifications,
   getUser,
+  editUserProfile,
 };

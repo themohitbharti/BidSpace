@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express from "express";
 import {
   registerUser,
   loginUser,
@@ -10,11 +10,12 @@ import {
   resetPassword,
   getAllNotifications,
   getUser,
+  editUserProfile,
 } from "../controllers/user.controllers";
 import { verifyToken } from "../middlewares/verifyToken.middleware";
 import { validateInput } from "../middlewares/isValidInput.middleware";
 
-const router = Router();
+const router = express.Router();
 
 router.post("/register", validateInput, registerUser);
 
@@ -35,5 +36,7 @@ router.post("/reset-password", resetPassword);
 router.get("/notifications", verifyToken, getAllNotifications);
 
 router.get("/details", verifyToken, getUser);
+
+router.put("/edit", verifyToken, editUserProfile);
 
 export default router;
