@@ -63,7 +63,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
     },
     coins: {
       type: Number,
-      default: 0,
+      default: 2000,
     },
     reservedCoins: {
       type: Number,
