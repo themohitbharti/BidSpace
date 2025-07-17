@@ -150,14 +150,31 @@ const showWaitingPurchases = asyncHandler(
       endTime: { $gt: new Date() },
     });
 
-    const waitingPurchases = activeAuctions.map((auction) => ({
-      productId: auction.productId,
-      currentPrice: auction.currentPrice,
-      endTime: auction.endTime,
-      bidAmount: userBids.find((bid) => bid.auctionId === auction._id)
-        ?.bidAmount,
-      auctionId: auction._id,
-    }));
+    const productIds = activeAuctions.map((auction) => auction.productId);
+
+    // Fetch full product objects
+    const products: IProduct[] = await Product.find({
+      _id: { $in: productIds },
+    }).lean();
+
+    // Attach auction info and user's bid to each product
+    const waitingPurchases = products.map((product) => {
+      const productIdStr = product._id?.toString?.() ?? "";
+      const auction = activeAuctions.find(
+        (a) => a.productId?.toString?.() === productIdStr
+      );
+      const auctionIdStr = auction?._id?.toString?.() ?? "";
+      const userBid = userBids.find(
+        (bid) => bid.auctionId?.toString?.() === auctionIdStr
+      );
+      return {
+        ...product,
+        currentPrice: auction?.currentPrice ?? product.currentPrice,
+        endTime: auction?.endTime ?? product.endTime,
+        auctionId: auction?._id,
+        bidAmount: userBid?.bidAmount,
+      };
+    });
 
     await redisClient.setex(
       `waitingPurchases:${userId}`,
