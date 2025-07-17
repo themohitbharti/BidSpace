@@ -78,7 +78,7 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
     category,
     coverImages: cloudinaryUrls,
     listedBy: user._id,
-    currentPrice: basePrice, // Initialize with base price
+    currentPrice: null,
     endTime: auctionEndTime, // Set from input
   });
 
@@ -93,7 +93,7 @@ const listProducts = asyncHandler(async (req: CustomRequest, res: Response) => {
   const newAuction = new Auction({
     productId: savedProduct._id,
     startPrice: basePrice,
-    currentPrice: basePrice,
+    currentPrice: null,
     endTime: auctionEndTime,
     bidders: [],
   });
@@ -226,7 +226,11 @@ const showByCategory = asyncHandler(
     for (const product of products) {
       if (product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }
@@ -360,7 +364,11 @@ const showPurchasedProducts = asyncHandler(
     for (const product of purchasedProducts) {
       if (product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }
@@ -423,7 +431,11 @@ const searchProducts = asyncHandler(
     for (const product of products) {
       if (product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }
@@ -471,7 +483,11 @@ const getRecentProducts = asyncHandler(
     for (const product of recentProducts) {
       if (product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }
@@ -565,7 +581,11 @@ const getTrendingProducts = asyncHandler(
     for (const product of sortedProducts) {
       if (product && product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }
@@ -621,7 +641,11 @@ const showListedProducts = asyncHandler(
     for (const product of listedProducts) {
       if (product.auctionId) {
         const auction = await Auction.findById(product.auctionId).lean();
-        if (auction && auction.currentPrice > product.currentPrice) {
+        if (
+          auction &&
+          (product.currentPrice === null ||
+            auction.currentPrice > product.currentPrice)
+        ) {
           product.currentPrice = auction.currentPrice;
         }
       }

@@ -26,8 +26,7 @@ const auctionSchema = new Schema<IAuction>({
   },
   currentPrice: {
     type: Number,
-    required: true,
-    min: 0
+    default: null,
   },
   endTime: {
     type: Date,

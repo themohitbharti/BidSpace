@@ -8,7 +8,7 @@ export interface IProduct extends Document {
   coverImages?: string[];
   listedBy: mongoose.Schema.Types.ObjectId;
   status: "live" | "sold" | "unsold";
-  currentPrice: number;
+  currentPrice: number | null;
   endTime?: Date;
   finalSoldPrice?: number;
   auctionId?: mongoose.Schema.Types.ObjectId;
@@ -57,8 +57,7 @@ const productSchema = new Schema<IProduct>({
   },
   currentPrice: {
     type: Number,
-    required: true,
-    min: 0,
+    default: null,
   },
   endTime: {
     type: Date,
