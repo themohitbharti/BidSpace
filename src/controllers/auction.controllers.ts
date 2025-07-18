@@ -128,6 +128,19 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   user.coins -= extraAmount;
   await user.save();
 
+  const product = await Product.findOne({ auctionId });
+
+  // Remove from wishlist if present
+  if (product && product._id && typeof product._id.toString === "function") {
+    const productIdStr = product._id.toString();
+    if (user.wishlist && user.wishlist.includes(productIdStr)) {
+      user.wishlist = user.wishlist.filter(
+        (id) => id.toString() !== productIdStr
+      );
+      await user.save();
+    }
+  }
+
   const newBid = new BidModel({
     auctionId,
     userId,

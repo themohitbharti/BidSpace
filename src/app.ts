@@ -11,8 +11,9 @@ import authRoutes from "./routers/auth.routes";
 import auctionRoutes from "./routers/auction.routes";
 import productRoutes from "./routers/product.routes";
 import paymentRoutes from "./routers/payment.routes";
+import wishlistRoutes from "./routers/wishlist.routes";
 import "./config/passport.setup";
-import './utils/cronJobs';
+import "./utils/cronJobs";
 
 const app = express();
 
@@ -31,20 +32,22 @@ const limiter = rateLimit({
 // );
 
 const allowedOrigins = [
-  "http://localhost:3000",  // frontend dev
-  "https://bidspace-v1.vercel.app" // deployed frontend (when ready)
+  "http://localhost:3000", // frontend dev
+  "https://bidspace-v1.vercel.app", // deployed frontend (when ready)
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -80,7 +83,7 @@ app.use("/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/product", productRoutes);
 app.use("/api/v1/auction", auctionRoutes);
-app.use("/api/v1/payment" , paymentRoutes);
-
+app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/wishlist", wishlistRoutes);
 
 export { app };
