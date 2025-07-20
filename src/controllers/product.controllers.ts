@@ -213,7 +213,11 @@ const showByCategory = asyncHandler(
       });
     }
 
-    const query: any = { category };
+    // Build query
+    const query: any = {};
+    if (category !== "all") {
+      query.category = category;
+    }
     if (status === "live") {
       query.status = { $in: ["live"] };
     } else if (status === "ended") {
