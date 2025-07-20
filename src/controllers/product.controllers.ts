@@ -193,16 +193,13 @@ const showWaitingPurchases = asyncHandler(
 // Update showByCategory function
 const showByCategory = asyncHandler(
   async (req: CustomRequest, res: Response) => {
-    const { category, status, all } = req.params;
+    const { category, status } = req.params;
     const { page = "1", limit = "10" } = req.query;
 
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
 
-    const cacheKey =
-      all === "all"
-        ? `products:${category}:${status}:all`
-        : `products:${category}:${status}:${page}:${limit}`;
+    const cacheKey = `products:${category}:${status}:${page}:${limit}`;
     const cachedProducts = await redisClient.get(cacheKey);
 
     if (cachedProducts) {
@@ -220,20 +217,16 @@ const showByCategory = asyncHandler(
     }
     if (status === "live") {
       query.status = { $in: ["live"] };
-    } else if (status === "ended") {
-      query.status = { $in: ["sold", "unsold"] };
+    } else if (status === "sold") {
+      query.status = { $in: ["sold"] };
+    }else if (status === "unsold") {
+      query.status = { $in: ["unsold"] };
     }
 
-    let products: IProduct[];
-
-    if (all === "all") {
-      products = await Product.find(query).lean();
-    } else {
-      products = await Product.find(query)
-        .skip((pageNumber - 1) * limitNumber)
-        .limit(limitNumber)
-        .lean();
-    }
+    const products: IProduct[] = await Product.find(query)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
+      .lean();
 
     if (products.length === 0) {
       return res.status(200).json({
@@ -257,11 +250,7 @@ const showByCategory = asyncHandler(
       }
     }
 
-    await redisClient.setex(
-      `products:${category}`,
-      120,
-      JSON.stringify(products)
-    );
+    await redisClient.setex(cacheKey, 120, JSON.stringify(products));
 
     return res.status(200).json({
       success: true,

@@ -29,7 +29,7 @@ router.post(
 
 router.get("/waiting", verifyToken, showWaitingPurchases);
 
-router.get("/list/:category/:status/:all", verifyToken, showByCategory);
+router.get("/list/:category/:status", verifyToken, showByCategory);
 
 router.get("/details/:id", showProductDetails);
 
