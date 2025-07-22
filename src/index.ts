@@ -28,6 +28,11 @@ io.on("connection" , (socket) => {
     console.log(`User ${socket.id} joined auction room ${auctionId}`);
   });
 
+  socket.on("leaveAuction", (auctionId) => {
+    socket.leave(`auction:${auctionId}`);
+    console.log(`User ${socket.id} left auction room auction:${auctionId}`);
+  });
+
   socket.on("message" , (message) => {
       console.log("message: ", message)
 

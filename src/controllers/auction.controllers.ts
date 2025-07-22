@@ -177,12 +177,12 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
   }
 
   io.to(`auction:${auctionId}`).emit("newBid", {
-    userId,
-    bidAmount,
-    auctionId,
-    currentPrice: auction.currentPrice,
-    bidders: auction.bidders,
-    timestamp: new Date().toISOString(),
+    userId: userId.toString(),
+  username:`User${userId.toString().substring(0, 6)}`,
+  bidAmount,
+  timestamp: new Date().toISOString(),
+  auctionId: auctionId.toString(),
+  currentPrice: auction.currentPrice
   });
 
   // After updating the auction's current price:
