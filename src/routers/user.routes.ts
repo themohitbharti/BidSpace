@@ -11,6 +11,8 @@ import {
   getAllNotifications,
   getUser,
   editUserProfile,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 } from "../controllers/user.controllers";
 import { verifyToken } from "../middlewares/verifyToken.middleware";
 import { validateInput } from "../middlewares/isValidInput.middleware";
@@ -34,6 +36,9 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
 router.get("/notifications", verifyToken, getAllNotifications);
+
+router.post("/notifications/read", verifyToken, markNotificationAsRead);
+router.post("/notifications/read-all", verifyToken, markAllNotificationsAsRead);
 
 router.get("/details", verifyToken, getUser);
 

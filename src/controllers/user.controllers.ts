@@ -8,6 +8,7 @@ import { CustomRequest } from "../middlewares/verifyToken.middleware";
 import { OTP, OTPDocument } from "../models/otp.models";
 import { sendEmail } from "../utils/sendEmails";
 import { redisClient } from "../config/redisClient";
+import mongoose from "mongoose";
 
 const generateOTP = (): string => {
   const otp = crypto.randomInt(1000, 9999).toString();
@@ -501,6 +502,99 @@ const getAllNotifications = asyncHandler(
   }
 );
 
+const markNotificationAsRead = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id as mongoose.Schema.Types.ObjectId;
+    const { notificationId } = req.body; // Use notification ID instead of index
+
+    if (!notificationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Notification ID is required",
+      });
+    }
+
+    try {
+      const userIdString = userId.toString();
+      const key = `notifications:${userIdString}`;
+      const notifications = await redisClient.lrange(key, 0, -1);
+
+      let updated = false;
+      const updatedNotifications = notifications.map((notificationStr) => {
+        const notification = JSON.parse(notificationStr);
+        if (notification.id === notificationId) {
+          notification.read = true;
+          notification.readAt = new Date();
+          updated = true;
+        }
+        return JSON.stringify(notification);
+      });
+
+      if (!updated) {
+        return res.status(404).json({
+          success: false,
+          message: "Notification not found",
+        });
+      }
+
+      // Clear the list and add updated notifications
+      await redisClient.del(key);
+      if (updatedNotifications.length > 0) {
+        await redisClient.rpush(key, ...updatedNotifications);
+        await redisClient.expire(key, 15 * 24 * 60 * 60); // 15 days
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Notification marked as read",
+      });
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
+
+const markAllNotificationsAsRead = asyncHandler(
+  async (req: CustomRequest, res: Response) => {
+    const userId = req.user._id as mongoose.Schema.Types.ObjectId;
+
+    try {
+      const userIdString = userId.toString();
+      const key = `notifications:${userIdString}`;
+      const notifications = await redisClient.lrange(key, 0, -1);
+
+      const updatedNotifications = notifications.map((notificationStr) => {
+        const notification = JSON.parse(notificationStr);
+        notification.read = true;
+        notification.readAt = new Date();
+        return JSON.stringify(notification);
+      });
+
+      // Clear the list and add updated notifications
+      await redisClient.del(key);
+      if (updatedNotifications.length > 0) {
+        await redisClient.rpush(key, ...updatedNotifications);
+        await redisClient.expire(key, 15 * 24 * 60 * 60); // 15 days
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "All notifications marked as read",
+      });
+    } catch (err) {
+      console.error("Error marking all notifications as read:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  }
+);
+
 const getUser = asyncHandler(async (req: CustomRequest, res: Response) => {
   const userId = req.user._id;
 
@@ -587,4 +681,6 @@ export {
   getAllNotifications,
   getUser,
   editUserProfile,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 };
