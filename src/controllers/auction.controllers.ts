@@ -178,11 +178,11 @@ const bidInAuction = asyncHandler(async (req: CustomRequest, res: Response) => {
 
   io.to(`auction:${auctionId}`).emit("newBid", {
     userId: userId.toString(),
-  username:`User${userId.toString().substring(0, 6)}`,
-  bidAmount,
-  timestamp: new Date().toISOString(),
-  auctionId: auctionId.toString(),
-  currentPrice: auction.currentPrice
+    username: `User${userId.toString().substring(0, 6)}`,
+    bidAmount,
+    timestamp: new Date().toISOString(),
+    auctionId: auctionId.toString(),
+    currentPrice: auction.currentPrice,
   });
 
   // After updating the auction's current price:
@@ -214,6 +214,7 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
     await BidModel.deleteMany({ auctionId });
 
     const product = await Product.findOne({ auctionId });
+    const productId = product?._id as mongoose.Schema.Types.ObjectId;
     if (product) {
       product.finalBid = {
         userId: lastBid.userId,
@@ -232,7 +233,8 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
       await createNotification(
         product.listedBy,
         `Your product ${product.title} has been sold for ${lastBid.bidAmount} coins.`,
-        auctionId
+        auctionId,
+        productId
       );
 
       await User.findByIdAndUpdate(lastBid.userId, {
@@ -243,13 +245,16 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
       await createNotification(
         lastBid.userId,
         `Congratulations! You won the auction for product ${product.title}.`,
-        auctionId
+        auctionId,
+        productId
       );
     }
 
     const auction = await Auction.findOne({ _id: auctionId });
     if (auction) {
       const winnerUserId = lastBid.userId.toString();
+      const product = await Product.findOne({ auctionId });
+
       for (const bidder of auction.bidders) {
         const user = await User.findById(bidder.userId);
         if (user) {
@@ -260,8 +265,13 @@ async function cleanupAuctionBids(auctionId: mongoose.Schema.Types.ObjectId) {
           if (bidder.userId.toString() !== winnerUserId) {
             await createNotification(
               bidder.userId,
-              `Refund of ${bidder.bidAmount} coins has been processed for auction ${auctionId}.`,
-              auctionId
+              `Refund of ${
+                bidder.bidAmount
+              } coins has been processed for product "${
+                product?.title || ""
+              }".`,
+              auctionId,
+              productId // Add productId with fallback
             );
           }
         }

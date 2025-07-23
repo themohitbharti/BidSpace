@@ -9,7 +9,7 @@ import mongoose from "mongoose";
 
 cron.schedule("*/10 * * * *", async () => {
   try {
-    console.log("cronjob started")
+    console.log("cronjob started");
     const currentTime = new Date();
     const endedAuctions = await Auction.find({
       endTime: { $lte: currentTime },
@@ -19,6 +19,7 @@ cron.schedule("*/10 * * * *", async () => {
       const auctionId = auction._id as mongoose.Schema.Types.ObjectId;
 
       const product = await Product.findOne({ auctionId: auctionId });
+      const productId = product?._id as mongoose.Schema.Types.ObjectId;
 
       if (product && product.status === "live") {
         const streamKey = `auctionStream:${auction._id}`;
@@ -45,7 +46,8 @@ cron.schedule("*/10 * * * *", async () => {
           await createNotification(
             product.listedBy,
             `Your product ${product.title} has been sold for ${highestBid.bidAmount} coins.`,
-            auctionId
+            auctionId,
+            productId
           );
           await User.findByIdAndUpdate(highestBid.userId, {
             $push: { productsPurchased: product._id },
@@ -54,7 +56,8 @@ cron.schedule("*/10 * * * *", async () => {
           await createNotification(
             highestBid.userId,
             `Congratulations! You won the auction for product ${product.title}.`,
-            auctionId
+            auctionId,
+            productId
           );
         } else {
           product.status = "unsold";
@@ -74,8 +77,9 @@ cron.schedule("*/10 * * * *", async () => {
 
               await createNotification(
                 bidder.userId,
-                `Refund of ${bidder.bidAmount} coins has been processed for auction ${auction._id}.`,
-                auctionId
+                `Refund of ${bidder.bidAmount} coins has been processed for product "${product.title}".`,
+                auctionId,
+                productId
               );
             } else {
               // Winner only gets reservedCoins cleared
