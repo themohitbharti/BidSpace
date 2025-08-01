@@ -5,7 +5,7 @@ import { User, UserDocument } from "../models/user.models";
 
 dotenv.config();
 
-const { OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET } = process.env;
+const { OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET , DEPLOYED_DOMAIN} = process.env;
 
 if (!OAUTH_CLIENT_ID || !OAUTH_CLIENT_SECRET) {
   throw new Error("Missing required environment variables for Google OAuth");
@@ -16,7 +16,7 @@ passport.use(
     {
       clientID: OAUTH_CLIENT_ID,
       clientSecret: OAUTH_CLIENT_SECRET,
-      callbackURL: "https://bidspace.mohitbharti.live/auth/google/callback",
+      callbackURL: `${DEPLOYED_DOMAIN}/auth/google/callback`,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
